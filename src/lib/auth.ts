@@ -6,11 +6,10 @@
 import { NextAuthConfig } from 'next-auth';
 import Credentials from 'next-auth/providers/credentials';
 import { compare } from 'bcryptjs';
-import { getUserByEmail } from '@/lib/supabase';
 
 /**
  * NextAuth configuration with Credentials provider
- * Uses JWT sessions for stateless authentication
+ * Single-user auth using environment variables (AUTH_USERNAME + AUTH_PASSWORD_HASH)
  */
 export const authConfig: NextAuthConfig = {
   pages: {
@@ -21,50 +20,41 @@ export const authConfig: NextAuthConfig = {
     Credentials({
       name: 'Credentials',
       credentials: {
-        email: { label: 'Email', type: 'email', placeholder: 'john@example.com' },
+        email: { label: 'Username', type: 'text', placeholder: 'username' },
         password: { label: 'Password', type: 'password' },
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
-          throw new Error('Missing email or password');
+          throw new Error('Missing username or password');
         }
 
-        try {
-          // Get user from database
-          const user = await getUserByEmail(credentials.email as string);
+        const expectedUsername = process.env.AUTH_USERNAME;
+        const expectedHash = process.env.AUTH_PASSWORD_HASH;
 
-          if (!user) {
-            throw new Error('User not found');
-          }
-
-          // Compare password with hash
-          // Note: In production, passwords should be stored as bcrypt hashes
-          // This requires updating the users table to include a passwordHash field
-          const userWithHash = user as any;
-          if (!userWithHash.passwordHash) {
-            throw new Error('User account not properly configured');
-          }
-
-          const isPasswordValid = await compare(
-            credentials.password as string,
-            userWithHash.passwordHash
-          );
-
-          if (!isPasswordValid) {
-            throw new Error('Invalid password');
-          }
-
-          return {
-            id: userWithHash.id,
-            email: userWithHash.email,
-            name: userWithHash.name || undefined,
-          };
-        } catch (error) {
-          if (error instanceof Error) {
-            throw error;
-          }
-          throw new Error('Authentication failed');
+        if (!expectedUsername || !expectedHash) {
+          throw new Error('Auth not configured');
         }
+
+        // Compare username
+        if (credentials.email !== expectedUsername) {
+          throw new Error('Invalid credentials');
+        }
+
+        // Compare password with bcrypt hash
+        const isPasswordValid = await compare(
+          credentials.password as string,
+          expectedHash
+        );
+
+        if (!isPasswordValid) {
+          throw new Error('Invalid credentials');
+        }
+
+        return {
+          id: '1',
+          email: expectedUsername,
+          name: expectedUsername,
+        };
       },
     }),
   ],

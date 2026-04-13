@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -24,7 +24,7 @@ function LoginContent() {
 
     try {
       const result = await signIn('credentials', {
-        email,
+        email: username,
         password,
         redirect: false,
       });
@@ -55,17 +55,17 @@ function LoginContent() {
             {(error || hasError) && (
               <div className="rounded-md bg-red-50 p-4">
                 <p className="text-sm text-red-800">
-                  {error || 'Invalid email or password'}
+                  {error || 'Invalid username or password'}
                 </p>
               </div>
             )}
 
             <Input
-              label="Email"
-              type="email"
-              placeholder="you@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              label="Username"
+              type="text"
+              placeholder="username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
               required
             />
 
