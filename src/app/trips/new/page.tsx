@@ -1,0 +1,606 @@
+'use client';
+
+import React, { useState, useRef, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { AppShell } from '@/components/layout/app-shell';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { DatePicker } from '@/components/ui/date-picker';
+import { Select } from '@/components/ui/select';
+import { Chip } from '@/components/ui/chip';
+import { Progress } from '@/components/ui/progress';
+import { Badge } from '@/components/ui/badge';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { apiClient } from '@/lib/api-client';
+import {
+  INTERESTS,
+  DISLIKES,
+  HOTEL_PREFERENCES,
+  TRIP_TYPES,
+  GENERATION_STEPS,
+} from '@/lib/constants';
+import type {
+  Interest,
+  Dislike,
+  HotelPreference,
+  TripType,
+  GenerationProgress,
+  Trip,
+} from '@/types';
+
+const STEPS = [
+  { id: 1, title: 'Destination & Dates' },
+  { id: 2, title: 'Travelers' },
+  { id: 3, title: 'Interests' },
+  { id: 4, title: 'Preferences' },
+  { id: 5, title: 'Review & Generate' },
+];
+
+interface FormData {
+  destination: string;
+  startDate: string;
+  endDate: string;
+  adultsCount: number;
+  childrenAges: number[];
+  groupDescription: string;
+  interests: Interest[];
+  dislikes: Dislike[];
+  dislikesText: string;
+  hotelPreference: HotelPreference;
+  tripType: TripType;
+  currency: 'EUR' | 'USD';
+  dailyBudget?: number;
+}
+
+export default function TripCreationPage() {
+  const router = useRouter();
+  const [currentStep, setCurrentStep] = useState(1);
+  const [formData, setFormData] = useState<FormData>({
+    destination: '',
+    startDate: '',
+    endDate: '',
+    adultsCount: 1,
+    childrenAges: [],
+    groupDescription: '',
+    interests: [],
+    dislikes: [],
+    dislikesText: '',
+    hotelPreference: 'comfort',
+    tripType: 'cultural',
+    currency: 'USD',
+  });
+
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generationProgress, setGenerationProgress] = useState<GenerationProgress | null>(null);
+  const eventSourceRef = useRef<EventSource | null>(null);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    return () => {
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close();
+      }
+    };
+  }, []);
+
+  const validateStep = (step: number): boolean => {
+    const newErrors: Record<string, string> = {};
+
+    if (step === 1) {
+      if (!formData.destination) newErrors.destination = 'Destination is required';
+      if (!formData.startDate) newErrors.startDate = 'Start date is required';
+      if (!formData.endDate) newErrors.endDate = 'End date is required';
+      if (formData.startDate && formData.endDate && formData.startDate >= formData.endDate) {
+        newErrors.endDate = 'End date must be after start date';
+      }
+    }
+
+    if (step === 2) {
+      if (formData.adultsCount < 1) newErrors.adultsCount = 'At least 1 adult is required';
+      if (formData.adultsCount > 10) newErrors.adultsCount = 'Maximum 10 adults';
+    }
+
+    if (step === 4) {
+      if (!formData.hotelPreference) newErrors.hotelPreference = 'Hotel preference is required';
+      if (!formData.tripType) newErrors.tripType = 'Trip type is required';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleNext = () => {
+    if (validateStep(currentStep) && currentStep < STEPS.length) {
+      setCurrentStep(currentStep + 1);
+    }
+  };
+
+  const handlePrev = () => {
+    if (currentStep > 1) {
+      setCurrentStep(currentStep - 1);
+    }
+  };
+
+  const handleGenerate = async () => {
+    if (!validateStep(5)) return;
+
+    setIsGenerating(true);
+    setGenerationProgress({ status: 'pending', progress: 0, jobId: '' });
+
+    try {
+      // Create trip first
+      const createResponse = await apiClient.post<Trip>('/trips', {
+        title: `Trip to ${formData.destination}`,
+        destination: formData.destination,
+        startDate: formData.startDate,
+        endDate: formData.endDate,
+        travelers: formData.adultsCount + formData.childrenAges.length,
+        tripType: formData.tripType,
+        preferences: {
+          interests: formData.interests,
+          dislikes: formData.dislikes,
+          hotelPreference: formData.hotelPreference,
+        },
+      });
+
+      if (!createResponse.success || !createResponse.data) {
+        throw new Error('Failed to create trip');
+      }
+
+      const tripId = createResponse.data.id;
+
+      // Start generation with SSE
+      const eventSource = new EventSource(
+        `/api/trips/${tripId}/status?generation=true`
+      );
+
+      eventSourceRef.current = eventSource;
+
+      eventSource.onmessage = (event) => {
+        try {
+          const progress: GenerationProgress = JSON.parse(event.data);
+          setGenerationProgress(progress);
+
+          if (progress.status === 'completed') {
+            eventSource.close();
+            router.push(`/trips/${tripId}`);
+          } else if (progress.status === 'failed') {
+            eventSource.close();
+            setIsGenerating(false);
+            setErrors({ generation: progress.message || 'Generation failed' });
+          }
+        } catch (err) {
+          // Continue listening
+        }
+      };
+
+      eventSource.onerror = () => {
+        eventSource.close();
+        setIsGenerating(false);
+        setErrors({ generation: 'Connection lost during generation' });
+      };
+    } catch (err) {
+      setIsGenerating(false);
+      setErrors({
+        generation: err instanceof Error ? err.message : 'Failed to start generation',
+      });
+    }
+  };
+
+  const interestOptions = Object.entries(INTERESTS).map(([key, val]) => ({
+    value: key,
+    label: `${val.icon} ${val.label}`,
+  }));
+
+  const dislikeOptions = Object.entries(DISLIKES).map(([key, val]) => ({
+    value: key,
+    label: `${val.icon} ${val.label}`,
+  }));
+
+  const progress = (currentStep / STEPS.length) * 100;
+
+  return (
+    <AppShell>
+      <div className="min-h-screen bg-gray-50 py-8">
+        <div className="mx-auto max-w-2xl px-4 sm:px-6 lg:px-8">
+          {/* Progress */}
+          <div className="mb-8">
+            <Progress value={progress} label={`Step ${currentStep} of ${STEPS.length}`} />
+            <div className="mt-4 flex justify-between">
+              {STEPS.map((step) => (
+                <div
+                  key={step.id}
+                  className={`text-xs font-medium ${
+                    currentStep === step.id
+                      ? 'text-blue-600'
+                      : step.id < currentStep
+                        ? 'text-gray-600'
+                        : 'text-gray-400'
+                  }`}
+                >
+                  {step.title}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>{STEPS[currentStep - 1].title}</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Step 1: Destination & Dates */}
+              {currentStep === 1 && (
+                <div className="space-y-4">
+                  <Input
+                    label="Destination"
+                    placeholder="e.g., Paris, Tokyo, New York"
+                    value={formData.destination}
+                    onChange={(e) =>
+                      setFormData({ ...formData, destination: e.target.value })
+                    }
+                    error={!!errors.destination}
+                  />
+
+                  <DatePicker
+                    label="Start Date"
+                    value={formData.startDate}
+                    onChange={(e) =>
+                      setFormData({ ...formData, startDate: e.target.value })
+                    }
+                    minDate={new Date().toISOString().split('T')[0]}
+                    error={!!errors.startDate}
+                  />
+
+                  <DatePicker
+                    label="End Date"
+                    value={formData.endDate}
+                    onChange={(e) =>
+                      setFormData({ ...formData, endDate: e.target.value })
+                    }
+                    minDate={formData.startDate || new Date().toISOString().split('T')[0]}
+                    error={!!errors.endDate}
+                  />
+
+                  {errors.destination && (
+                    <p className="text-sm text-red-600">{errors.destination}</p>
+                  )}
+                  {errors.startDate && (
+                    <p className="text-sm text-red-600">{errors.startDate}</p>
+                  )}
+                  {errors.endDate && (
+                    <p className="text-sm text-red-600">{errors.endDate}</p>
+                  )}
+                </div>
+              )}
+
+              {/* Step 2: Travelers */}
+              {currentStep === 2 && (
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-900 mb-2">
+                      Number of Adults (1-10)
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="10"
+                      value={formData.adultsCount}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          adultsCount: Math.max(1, Math.min(10, parseInt(e.target.value) || 1)),
+                        })
+                      }
+                      className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-900 mb-2">
+                      Children Ages (0-17)
+                    </label>
+                    <div className="space-y-2">
+                      {formData.childrenAges.map((age, idx) => (
+                        <div key={idx} className="flex gap-2">
+                          <input
+                            type="number"
+                            min="0"
+                            max="17"
+                            value={age}
+                            onChange={(e) => {
+                              const newAges = [...formData.childrenAges];
+                              newAges[idx] = parseInt(e.target.value) || 0;
+                              setFormData({ ...formData, childrenAges: newAges });
+                            }}
+                            className="flex h-10 flex-1 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm"
+                            placeholder="Age"
+                          />
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => {
+                              setFormData({
+                                ...formData,
+                                childrenAges: formData.childrenAges.filter(
+                                  (_, i) => i !== idx
+                                ),
+                              });
+                            }}
+                          >
+                            Remove
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        setFormData({
+                          ...formData,
+                          childrenAges: [...formData.childrenAges, 0],
+                        })
+                      }
+                      className="mt-2"
+                    >
+                      Add Child
+                    </Button>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-900 mb-2">
+                      About Your Group
+                    </label>
+                    <textarea
+                      value={formData.groupDescription}
+                      onChange={(e) =>
+                        setFormData({ ...formData, groupDescription: e.target.value })
+                      }
+                      placeholder="e.g., family trip with kids, romantic getaway, team building"
+                      className="flex min-h-24 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm"
+                    />
+                  </div>
+
+                  {errors.adultsCount && (
+                    <p className="text-sm text-red-600">{errors.adultsCount}</p>
+                  )}
+                </div>
+              )}
+
+              {/* Step 3: Interests */}
+              {currentStep === 3 && (
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-900 mb-3">
+                      What are you interested in?
+                    </label>
+                    <Chip
+                      options={interestOptions}
+                      selectedValues={formData.interests}
+                      onChange={(selected) =>
+                        setFormData({
+                          ...formData,
+                          interests: selected as Interest[],
+                        })
+                      }
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-900 mb-3">
+                      What would you like to avoid?
+                    </label>
+                    <Chip
+                      options={dislikeOptions}
+                      selectedValues={formData.dislikes}
+                      onChange={(selected) =>
+                        setFormData({
+                          ...formData,
+                          dislikes: selected as Dislike[],
+                        })
+                      }
+                    />
+                  </div>
+
+                  <textarea
+                    value={formData.dislikesText}
+                    onChange={(e) =>
+                      setFormData({ ...formData, dislikesText: e.target.value })
+                    }
+                    placeholder="Any other dislikes or restrictions?"
+                    className="flex min-h-20 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm"
+                  />
+                </div>
+              )}
+
+              {/* Step 4: Preferences */}
+              {currentStep === 4 && (
+                <div className="space-y-4">
+                  <Select
+                    label="Hotel Preference"
+                    value={formData.hotelPreference}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        hotelPreference: e.target.value as HotelPreference,
+                      })
+                    }
+                    options={Object.entries(HOTEL_PREFERENCES).map(([key, val]) => ({
+                      value: key,
+                      label: `${val.icon} ${val.label}`,
+                    }))}
+                    error={!!errors.hotelPreference}
+                  />
+
+                  <Select
+                    label="Trip Type"
+                    value={formData.tripType}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        tripType: e.target.value as TripType,
+                      })
+                    }
+                    options={Object.entries(TRIP_TYPES).map(([key, val]) => ({
+                      value: key,
+                      label: `${val.icon} ${val.label}`,
+                    }))}
+                    error={!!errors.tripType}
+                  />
+
+                  <Select
+                    label="Currency"
+                    value={formData.currency}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        currency: e.target.value as 'EUR' | 'USD',
+                      })
+                    }
+                    options={[
+                      { value: 'USD', label: 'USD ($)' },
+                      { value: 'EUR', label: 'EUR (€)' },
+                    ]}
+                  />
+
+                  <Input
+                    label="Daily Budget Target (Optional)"
+                    type="number"
+                    placeholder="e.g., 150"
+                    value={formData.dailyBudget || ''}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        dailyBudget: e.target.value ? parseFloat(e.target.value) : undefined,
+                      })
+                    }
+                  />
+
+                  {errors.hotelPreference && (
+                    <p className="text-sm text-red-600">{errors.hotelPreference}</p>
+                  )}
+                  {errors.tripType && (
+                    <p className="text-sm text-red-600">{errors.tripType}</p>
+                  )}
+                </div>
+              )}
+
+              {/* Step 5: Review */}
+              {currentStep === 5 && (
+                <div className="space-y-4">
+                  <div className="grid gap-4 rounded-lg bg-gray-50 p-4">
+                    <div>
+                      <p className="text-xs font-semibold text-gray-600">DESTINATION</p>
+                      <p className="text-lg font-medium text-gray-900">{formData.destination}</p>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-xs font-semibold text-gray-600">START DATE</p>
+                        <p className="text-sm font-medium text-gray-900">{formData.startDate}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold text-gray-600">END DATE</p>
+                        <p className="text-sm font-medium text-gray-900">{formData.endDate}</p>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-xs font-semibold text-gray-600">TRAVELERS</p>
+                        <p className="text-sm font-medium text-gray-900">
+                          {formData.adultsCount} adults
+                          {formData.childrenAges.length > 0 && `, ${formData.childrenAges.length} children`}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold text-gray-600">TRIP TYPE</p>
+                        <p className="text-sm font-medium text-gray-900">
+                          {TRIP_TYPES[formData.tripType].label}
+                        </p>
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-gray-600 mb-2">INTERESTS</p>
+                      <div className="flex flex-wrap gap-2">
+                        {formData.interests.map((interest) => (
+                          <Badge key={interest}>{INTERESTS[interest].label}</Badge>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {errors.generation && (
+                    <div className="rounded-md bg-red-50 p-3">
+                      <p className="text-sm text-red-800">{errors.generation}</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Navigation */}
+              <div className="flex gap-4 border-t pt-6">
+                <Button
+                  variant="outline"
+                  onClick={handlePrev}
+                  disabled={currentStep === 1 || isGenerating}
+                >
+                  Back
+                </Button>
+                {currentStep < STEPS.length ? (
+                  <Button
+                    onClick={handleNext}
+                    className="flex-1 bg-blue-600 hover:bg-blue-700"
+                    disabled={isGenerating}
+                  >
+                    Next
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={handleGenerate}
+                    isLoading={isGenerating}
+                    disabled={isGenerating}
+                    className="flex-1 bg-green-600 hover:bg-green-700"
+                  >
+                    {isGenerating ? 'Generating...' : 'Generate Itinerary'}
+                  </Button>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      {/* Generation Progress Dialog */}
+      <Dialog open={isGenerating} onOpenChange={(open) => !open && !isGenerating && setIsGenerating(false)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Generating Your Itinerary</DialogTitle>
+            <DialogDescription>
+              AI is creating your personalized trip plan...
+            </DialogDescription>
+          </DialogHeader>
+          {generationProgress && (
+            <div className="space-y-4">
+              <Progress value={generationProgress.progress} />
+              <div className="rounded-lg bg-gray-50 p-4">
+                <p className="text-sm font-medium text-gray-900">
+                  {generationProgress.currentStep
+                    ? GENERATION_STEPS[generationProgress.currentStep]?.label ||
+                      generationProgress.message
+                    : 'Starting...'}
+                </p>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </AppShell>
+  );
+}
