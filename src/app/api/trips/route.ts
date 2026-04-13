@@ -31,8 +31,8 @@ export async function GET() {
     const { data: trips, error } = await (supabase as any)
       .from('trips')
       .select('*')
-      .eq('userId', session.user.id)
-      .order('createdAt', { ascending: false });
+      .eq('user_id', session.user.id)
+      .order('created_at', { ascending: false });
 
     if (error) {
       throw error;
@@ -78,8 +78,8 @@ export async function POST(request: Request) {
     const { data: recentTrips, error: rateLimitError } = await (supabase as any)
       .from('trips')
       .select('id')
-      .eq('userId', session.user.id)
-      .gte('createdAt', oneHourAgo.toISOString());
+      .eq('user_id', session.user.id)
+      .gte('created_at', oneHourAgo.toISOString());
 
     if (rateLimitError) {
       throw rateLimitError;
@@ -98,17 +98,17 @@ export async function POST(request: Request) {
     // Create trip with status='generating'
     const tripData = {
       id: tripId,
-      userId: session.user.id,
-      title: body.title,
+      user_id: session.user.id,
       destination: body.destination,
-      startDate: body.startDate,
-      endDate: body.endDate,
-      travelers: body.travelers,
-      tripType: body.tripType,
-      preferences: body.preferences || {},
+      start_date: body.startDate,
+      end_date: body.endDate,
+      profile: {
+        title: body.title,
+        travelers: body.travelers,
+        tripType: body.tripType,
+        preferences: body.preferences || {},
+      },
       status: 'generating',
-      createdAt: now,
-      updatedAt: now,
     };
 
     const { error: insertError } = await (supabase as any)
@@ -121,7 +121,7 @@ export async function POST(request: Request) {
 
     // Start generation pipeline in background
     try {
-      const trip = { ...tripData, days: [] } as Trip;
+      const trip = { ...tripData, days: [] } as unknown as Trip;
       const pipeline = new GenerationPipeline(trip);
       // Pipeline runs asynchronously
       pipeline.run().catch((err) => {

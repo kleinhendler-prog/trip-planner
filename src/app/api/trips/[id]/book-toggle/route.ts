@@ -41,7 +41,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       .from('trips')
       .select('booked_items')
       .eq('id', id)
-      .eq('userId', session.user.id)
+      .eq('user_id', session.user.id)
       .single();
 
     if (tripError || !trip) {

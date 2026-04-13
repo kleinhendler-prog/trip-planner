@@ -107,22 +107,9 @@ export async function createUser(id: string, email: string, name?: string) {
 export async function getUserTrips(userId: string) {
   const { data, error } = await supabaseServer
     .from('trips')
-    .select(
-      `
-      id,
-      title,
-      destination,
-      startDate,
-      endDate,
-      travelers,
-      tripType,
-      status,
-      createdAt,
-      updatedAt
-    `
-    )
-    .eq('userId', userId)
-    .order('createdAt', { ascending: false });
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false });
 
   if (error) throw error;
   return data;
@@ -134,24 +121,9 @@ export async function getUserTrips(userId: string) {
 export async function getTripWithDetails(tripId: string, userId: string) {
   const { data, error } = await supabaseServer
     .from('trips')
-    .select(
-      `
-      *,
-      days (
-        *,
-        activities (
-          *,
-          restaurant:meals(*)
-        ),
-        meals (
-          *,
-          restaurant:restaurants(*)
-        )
-      )
-    `
-    )
+    .select('*')
     .eq('id', tripId)
-    .eq('userId', userId)
+    .eq('user_id', userId)
     .single();
 
   if (error) throw error;
@@ -178,10 +150,7 @@ export async function createTrip(tripData: any) {
 export async function updateTrip(tripId: string, updates: any) {
   const { data, error } = await (supabaseServer as any)
     .from('trips')
-    .update({
-      ...updates,
-      updatedAt: new Date(),
-    })
+    .update(updates)
     .eq('id', tripId)
     .select()
     .single();
@@ -195,24 +164,24 @@ export async function updateTrip(tripId: string, updates: any) {
  */
 export async function deleteTrip(tripId: string) {
   // Delete in order due to foreign key constraints
-  await (supabaseServer as any).from('trip_reflections').delete().eq('tripId', tripId);
-  await (supabaseServer as any).from('trip_confirmations').delete().eq('tripId', tripId);
-  await (supabaseServer as any).from('generation_jobs').delete().eq('tripId', tripId);
+  await (supabaseServer as any).from('trip_reflections').delete().eq('trip_id', tripId);
+  await (supabaseServer as any).from('trip_confirmations').delete().eq('trip_id', tripId);
+  await (supabaseServer as any).from('generation_jobs').delete().eq('trip_id', tripId);
 
   // Delete days and their children
   const { data: days } = await (supabaseServer as any)
     .from('days')
     .select('id')
-    .eq('tripId', tripId);
+    .eq('trip_id', tripId);
 
   if (days) {
     for (const day of days) {
-      await (supabaseServer as any).from('activities').delete().eq('dayId', day.id);
-      await (supabaseServer as any).from('meals').delete().eq('dayId', day.id);
+      await (supabaseServer as any).from('activities').delete().eq('day_id', day.id);
+      await (supabaseServer as any).from('meals').delete().eq('day_id', day.id);
     }
   }
 
-  await (supabaseServer as any).from('days').delete().eq('tripId', tripId);
+  await (supabaseServer as any).from('days').delete().eq('trip_id', tripId);
 
   // Finally delete the trip
   const { error } = await (supabaseServer as any)
@@ -235,7 +204,7 @@ export async function searchPlacesCache(
     .select('*');
 
   if (placeType) {
-    queryBuilder = queryBuilder.eq('placeType', placeType);
+    queryBuilder = queryBuilder.eq('place_type', placeType);
   }
 
   const { data, error } = await queryBuilder

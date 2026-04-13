@@ -36,8 +36,8 @@ export async function GET(request: Request) {
         days (id, date)
       `)
       .in('status', ['generating', 'generated', 'planning'])
-      .lte('startDate', new Date().toISOString())
-      .gte('endDate', new Date().toISOString());
+      .lte('start_date', new Date().toISOString())
+      .gte('end_date', new Date().toISOString());
 
     if (tripsError) {
       throw tripsError;

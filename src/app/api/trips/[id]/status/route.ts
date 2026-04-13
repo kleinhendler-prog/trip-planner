@@ -58,8 +58,8 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
             const { data: jobs, error: jobsError } = await (supabase as any)
               .from('generation_jobs')
               .select('*')
-              .eq('tripId', id)
-              .order('createdAt', { ascending: false })
+              .eq('trip_id', id)
+              .order('created_at', { ascending: false })
               .limit(1);
 
             if (jobsError) {

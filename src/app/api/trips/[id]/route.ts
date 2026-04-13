@@ -34,7 +34,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
         )
       `)
       .eq('id', id)
-      .eq('userId', session.user.id)
+      .eq('user_id', session.user.id)
       .single();
 
     if (error) {

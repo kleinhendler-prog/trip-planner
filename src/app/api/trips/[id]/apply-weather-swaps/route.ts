@@ -42,7 +42,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       .from('trips')
       .select('*')
       .eq('id', id)
-      .eq('userId', session.user.id)
+      .eq('user_id', session.user.id)
       .single();
 
     if (tripError || !trip) {
@@ -56,7 +56,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     const { data: days, error: daysError } = await (supabase as any)
       .from('days')
       .select('*')
-      .eq('tripId', id)
+      .eq('trip_id', id)
       .order('dayNumber', { ascending: true });
 
     if (daysError || !days || !days[day_index]) {
@@ -72,7 +72,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     const { data: activities, error: activitiesError } = await (supabase as any)
       .from('activities')
       .select('*')
-      .eq('dayId', day.id)
+      .eq('day_id', day.id)
       .order('order', { ascending: true });
 
     if (activitiesError || !activities) {

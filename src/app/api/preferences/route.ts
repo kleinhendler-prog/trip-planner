@@ -25,7 +25,7 @@ export async function GET() {
     const { data: preferences, error } = await supabase
       .from('user_preferences')
       .select('*')
-      .eq('userId', session.user.id)
+      .eq('user_id', session.user.id)
       .eq('active', true);
 
     if (error) {

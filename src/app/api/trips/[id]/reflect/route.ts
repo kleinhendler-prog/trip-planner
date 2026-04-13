@@ -44,7 +44,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       .from('trips')
       .select('*')
       .eq('id', id)
-      .eq('userId', session.user.id)
+      .eq('user_id', session.user.id)
       .single();
 
     if (tripError || !trip) {
@@ -65,7 +65,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     const { data: existingReflection, error: fetchError } = await (supabase as any)
       .from('trip_reflections')
       .select('id')
-      .eq('tripId', id)
+      .eq('trip_id', id)
       .single();
 
     let reflectionId = uuidv4();
@@ -180,7 +180,7 @@ async function updateUserPreferences(
     const { data: existingPrefs, error: fetchError } = await (supabase as any)
       .from('user_preferences')
       .select('*')
-      .eq('userId', userId)
+      .eq('user_id', userId)
       .single();
 
     const mergedPrefs = {
@@ -203,7 +203,7 @@ async function updateUserPreferences(
       await (supabase as any)
         .from('user_preferences')
         .update(mergedPrefs as any)
-        .eq('userId', userId);
+        .eq('user_id', userId);
     } else {
       await (supabase as any)
         .from('user_preferences')

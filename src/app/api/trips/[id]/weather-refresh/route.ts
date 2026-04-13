@@ -32,7 +32,7 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
         days (id, date, dayNumber)
       `)
       .eq('id', id)
-      .eq('userId', session.user.id)
+      .eq('user_id', session.user.id)
       .single();
 
     if (tripError || !trip) {
