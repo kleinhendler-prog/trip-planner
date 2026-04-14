@@ -115,7 +115,7 @@ export const GENERATION_STEPS: Record<GenerationStep, { label: string; order: nu
 
 export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
 
-export const API_TIMEOUT = 30000; // 30 seconds
+export const API_TIMEOUT = 90000; // 90 seconds (for generation endpoint)
 
 export const API_ENDPOINTS = {
   // Auth

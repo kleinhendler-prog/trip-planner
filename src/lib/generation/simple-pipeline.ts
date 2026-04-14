@@ -45,61 +45,43 @@ function buildPrompt(trip: any): string {
   const prefs = profile.preferences || {};
   const interests = (prefs.interests || []).join(', ') || 'general sightseeing';
   const dislikes = (prefs.dislikes || []).join(', ') || 'none';
-  const nights = Math.ceil(
-    (new Date(trip.end_date).getTime() - new Date(trip.start_date).getTime()) / (1000 * 60 * 60 * 24)
+  const nights = Math.max(
+    1,
+    Math.ceil(
+      (new Date(trip.end_date).getTime() - new Date(trip.start_date).getTime()) / (1000 * 60 * 60 * 24)
+    )
   );
   const days = nights + 1;
 
-  return `You are an expert travel planner. Create a complete, detailed, personalized itinerary for this trip:
+  return `Create a ${days}-day itinerary for ${trip.destination} (${trip.start_date} to ${trip.end_date}).
+Travelers: ${profile.travelers || 2} · Type: ${profile.tripType || 'cultural'} · Hotel: ${prefs.hotelPreference || 'comfort'}
+Interests: ${interests} · Avoid: ${dislikes} · Currency: ${trip.currency || 'EUR'}
 
-Destination: ${trip.destination}
-Dates: ${trip.start_date} to ${trip.end_date} (${days} days)
-Travelers: ${profile.travelers || 2} adults
-Trip type: ${profile.tripType || 'cultural'}
-Interests: ${interests}
-Avoid: ${dislikes}
-Hotel preference: ${prefs.hotelPreference || 'comfort'}
-Currency: ${trip.currency || 'EUR'}
+Real venue names, geographic clustering, specific times. Return ONLY this JSON (no markdown):
 
-Create a day-by-day itinerary with specific times (morning/afternoon/evening or HH:MM), real attraction names, restaurants, and local experiences. Include practical tips, typical costs, and walking/transit advice. Group activities geographically to minimize travel time.
-
-Respond with ONLY valid JSON matching this exact schema:
 {
-  "summary": "2-3 sentence trip overview",
-  "highlights": ["5-7 key highlights"],
+  "summary": "2 sentences",
+  "highlights": ["5 items"],
   "days": [
     {
       "dayNumber": 1,
       "date": "${trip.start_date}",
-      "theme": "short day theme",
-      "neighborhood": "main neighborhood for the day",
+      "theme": "short theme",
+      "neighborhood": "main area",
       "activities": [
-        {
-          "time": "09:00",
-          "name": "specific attraction or restaurant name",
-          "description": "2-3 sentence description with what to see/do/eat",
-          "type": "attraction|meal|transport|experience|rest",
-          "duration": "e.g. 2 hours",
-          "location": {"name": "exact name", "address": "neighborhood or street"},
-          "tips": "specific insider tip",
-          "estimatedCost": "e.g. €15-20 per person"
-        }
+        {"time": "09:00", "name": "real venue", "description": "1-2 sentences", "type": "attraction|meal|experience|rest", "duration": "2 hours", "location": {"name": "venue", "address": "area"}, "tips": "one tip", "estimatedCost": "€X"}
       ],
-      "narration": "3-4 sentences painting a picture of the day's flow"
+      "narration": "2 sentences about the day"
     }
   ],
   "hotelRecommendations": [
-    {"name": "real hotel name", "area": "neighborhood", "priceRange": "e.g. €150-250/night", "why": "why it fits"}
+    {"name": "real hotel", "area": "neighborhood", "priceRange": "€X-Y", "why": "one sentence"}
   ],
-  "budgetEstimate": {
-    "perDay": "e.g. €150-250 per person per day",
-    "total": "total for the trip",
-    "breakdown": "rough breakdown"
-  },
-  "practicalTips": ["5-8 specific tips"]
+  "budgetEstimate": {"perDay": "€X", "total": "€Y", "breakdown": "food X, activities Y, transport Z"},
+  "practicalTips": ["4 specific tips"]
 }
 
-Include 5-7 activities per day including meals. Use real, existing venue names. Return ONLY the JSON, no preamble or markdown.`;
+Include 5-6 activities per day (breakfast/lunch/dinner + 2-3 attractions). 3 hotel recommendations.`;
 }
 
 export async function generateTripItinerary(tripId: string): Promise<SimpleItinerary> {
@@ -122,7 +104,7 @@ export async function generateTripItinerary(tripId: string): Promise<SimpleItine
   try {
     const prompt = buildPrompt(trip);
     const itinerary = await callClaudeJSON<SimpleItinerary>(prompt, {
-      maxTokens: 8000,
+      maxTokens: 6000,
       temperature: 0.7,
     });
 
@@ -152,7 +134,7 @@ export async function generateTripItinerary(tripId: string): Promise<SimpleItine
       trip_id: tripId,
       step: 'generating_itinerary',
       status: 'failed',
-      error: err?.message || 'Generation failed',
+      error: String(err?.message || err).substring(0, 500),
     });
 
     throw err;

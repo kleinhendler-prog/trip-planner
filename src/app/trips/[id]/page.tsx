@@ -67,7 +67,23 @@ export default function TripViewPage() {
   const [expandedDays, setExpandedDays] = useState<Set<number>>(new Set([1]));
 
   useEffect(() => {
-    fetchTrip();
+    let generationTriggered = false;
+    const doFetch = async () => {
+      const response = await apiClient.get<TripRecord>(`/trips/${tripId}`);
+      if (response.success && response.data) {
+        setTrip(response.data);
+        // If the trip was just created and has no itinerary, trigger generation
+        if (!generationTriggered && response.data.status === 'generating' && !response.data.itinerary) {
+          generationTriggered = true;
+          // Fire and forget - don't block UI
+          apiClient.post(`/trips/${tripId}/generate`, {}).then(() => {
+            fetchTrip();
+          }).catch(() => fetchTrip());
+        }
+      }
+      setIsLoading(false);
+    };
+    doFetch();
     const interval = setInterval(() => {
       setTrip((prev) => {
         if (prev && prev.status === 'generating') {

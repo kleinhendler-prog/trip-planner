@@ -6,7 +6,7 @@
 
 import { auth } from '@/app/api/auth/config';
 import { supabaseServer as supabase } from '@/lib/supabase';
-import { generateTripItinerary } from '@/lib/generation/simple-pipeline';
+// generation is triggered by a separate endpoint after trip creation
 import type { CreateTripInput } from '@/types/index';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -121,14 +121,7 @@ export async function POST(request: Request) {
       throw insertError;
     }
 
-    // Generate the itinerary synchronously (Vercel serverless can't run background tasks after response)
-    try {
-      await generateTripItinerary(tripId);
-    } catch (genError) {
-      console.error('Generation error for trip', tripId, genError);
-      // The status will be 'failed' in the DB; still return the trip ID so user can see it
-    }
-
+    // Return immediately - generation will be triggered by the trip page
     return Response.json({ id: tripId, trip_id: tripId }, { status: 201 });
   } catch (error) {
     console.error('POST /api/trips error:', error);
