@@ -57,31 +57,20 @@ function buildPrompt(trip: any): string {
 Travelers: ${profile.travelers || 2} · Type: ${profile.tripType || 'cultural'} · Hotel: ${prefs.hotelPreference || 'comfort'}
 Interests: ${interests} · Avoid: ${dislikes} · Currency: ${trip.currency || 'EUR'}
 
-Real venue names, geographic clustering, specific times. Return ONLY this JSON (no markdown):
+Real venue names, geographic clustering. Concise descriptions (max 1 sentence each). Return ONLY valid JSON (no markdown, no preamble):
 
 {
-  "summary": "2 sentences",
-  "highlights": ["5 items"],
+  "summary": "1 sentence",
+  "highlights": ["4 short items"],
   "days": [
-    {
-      "dayNumber": 1,
-      "date": "${trip.start_date}",
-      "theme": "short theme",
-      "neighborhood": "main area",
-      "activities": [
-        {"time": "09:00", "name": "real venue", "description": "1-2 sentences", "type": "attraction|meal|experience|rest", "duration": "2 hours", "location": {"name": "venue", "address": "area"}, "tips": "one tip", "estimatedCost": "€X"}
-      ],
-      "narration": "2 sentences about the day"
-    }
+    {"dayNumber": 1, "date": "${trip.start_date}", "theme": "2-3 word theme", "neighborhood": "main area", "activities": [{"time": "09:00", "name": "real venue", "description": "1 short sentence", "type": "attraction", "duration": "2h", "location": {"name": "venue"}, "tips": "brief tip", "estimatedCost": "€X"}], "narration": "1 short sentence"}
   ],
-  "hotelRecommendations": [
-    {"name": "real hotel", "area": "neighborhood", "priceRange": "€X-Y", "why": "one sentence"}
-  ],
-  "budgetEstimate": {"perDay": "€X", "total": "€Y", "breakdown": "food X, activities Y, transport Z"},
-  "practicalTips": ["4 specific tips"]
+  "hotelRecommendations": [{"name": "real hotel", "area": "area", "priceRange": "€X-Y", "why": "brief"}],
+  "budgetEstimate": {"perDay": "€X", "total": "€Y", "breakdown": "food/activities/transport"},
+  "practicalTips": ["3 tips"]
 }
 
-Include 5-6 activities per day (breakfast/lunch/dinner + 2-3 attractions). 3 hotel recommendations.`;
+5 activities per day (breakfast, morning attraction, lunch, afternoon attraction, dinner). 2 hotel options. Keep every string SHORT to fit in token limit.`;
 }
 
 export async function generateTripItinerary(tripId: string): Promise<SimpleItinerary> {
@@ -104,8 +93,8 @@ export async function generateTripItinerary(tripId: string): Promise<SimpleItine
   try {
     const prompt = buildPrompt(trip);
     const itinerary = await callClaudeJSON<SimpleItinerary>(prompt, {
-      maxTokens: 6000,
-      temperature: 0.7,
+      maxTokens: 8000,
+      temperature: 0.5,
     });
 
     // Save to trip
