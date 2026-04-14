@@ -40,7 +40,7 @@ export async function callClaude(
 
       // Create API call promise
       const apiPromise = client.messages.create({
-        model: 'claude-sonnet-4-5',
+        model: 'claude-haiku-4-5',
         max_tokens: maxTokens,
         temperature,
         system,
