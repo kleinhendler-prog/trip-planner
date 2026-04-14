@@ -163,27 +163,7 @@ export async function updateTrip(tripId: string, updates: any) {
  * Delete a trip and all related data
  */
 export async function deleteTrip(tripId: string) {
-  // Delete in order due to foreign key constraints
-  await (supabaseServer as any).from('trip_reflections').delete().eq('trip_id', tripId);
-  await (supabaseServer as any).from('trip_confirmations').delete().eq('trip_id', tripId);
-  await (supabaseServer as any).from('generation_jobs').delete().eq('trip_id', tripId);
-
-  // Delete days and their children
-  const { data: days } = await (supabaseServer as any)
-    .from('days')
-    .select('id')
-    .eq('trip_id', tripId);
-
-  if (days) {
-    for (const day of days) {
-      await (supabaseServer as any).from('activities').delete().eq('day_id', day.id);
-      await (supabaseServer as any).from('meals').delete().eq('day_id', day.id);
-    }
-  }
-
-  await (supabaseServer as any).from('days').delete().eq('trip_id', tripId);
-
-  // Finally delete the trip
+  // Cascade deletes handle child tables (trip_reflections, trip_confirmations, generation_jobs)
   const { error } = await (supabaseServer as any)
     .from('trips')
     .delete()

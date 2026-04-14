@@ -177,8 +177,8 @@ export default function HomePage() {
                   </div>
 
                   <CardHeader className="pb-3">
-                    <CardTitle className="text-xl">{trip.title}</CardTitle>
-                    <CardDescription>{trip.destination}</CardDescription>
+                    <CardTitle className="text-xl">{(trip as any).profile?.title || `Trip to ${typeof trip.destination === 'string' ? trip.destination : (trip.destination as any)?.name || 'Destination'}`}</CardTitle>
+                    <CardDescription>{typeof trip.destination === 'string' ? trip.destination : (trip.destination as any)?.name}</CardDescription>
                   </CardHeader>
 
                   <CardContent className="space-y-4">
@@ -186,13 +186,13 @@ export default function HomePage() {
                       <div className="flex items-center justify-between">
                         <span className="text-gray-600">Dates:</span>
                         <span className="font-medium">
-                          {formatDateRange(trip.startDate, trip.endDate)}
+                          {formatDateRange((trip as any).start_date || trip.startDate, (trip as any).end_date || trip.endDate)}
                         </span>
                       </div>
                       <div className="flex items-center justify-between">
                         <span className="text-gray-600">Duration:</span>
                         <Badge>
-                          {getDayCount(trip.startDate, trip.endDate)} days
+                          {getDayCount((trip as any).start_date || trip.startDate, (trip as any).end_date || trip.endDate)} days
                         </Badge>
                       </div>
                       <div className="flex items-center justify-between">

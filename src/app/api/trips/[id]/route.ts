@@ -25,14 +25,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
 
     const { data: trip, error } = await (supabase as any)
       .from('trips')
-      .select(`
-        *,
-        days (
-          *,
-          activities (*),
-          meals (*)
-        )
-      `)
+      .select('*')
       .eq('id', id)
       .eq('user_id', session.user.id)
       .single();
@@ -76,7 +69,7 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
     // Verify trip belongs to user
     const { data: trip, error: fetchError } = await (supabase as any)
       .from('trips')
-      .select('userId')
+      .select('user_id')
       .eq('id', id)
       .single();
 
@@ -87,7 +80,7 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
       );
     }
 
-    if (trip.userId !== session.user.id) {
+    if (trip.user_id !== session.user.id) {
       return Response.json(
         { error: 'unauthorized' },
         { status: 401 }

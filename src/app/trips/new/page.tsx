@@ -154,38 +154,10 @@ export default function TripCreationPage() {
         throw new Error('Failed to create trip');
       }
 
-      const tripId = createResponse.data.id;
+      const tripId = (createResponse.data as any).id || (createResponse.data as any).trip_id;
 
-      // Start generation with SSE
-      const eventSource = new EventSource(
-        `/api/trips/${tripId}/status?generation=true`
-      );
-
-      eventSourceRef.current = eventSource;
-
-      eventSource.onmessage = (event) => {
-        try {
-          const progress: GenerationProgress = JSON.parse(event.data);
-          setGenerationProgress(progress);
-
-          if (progress.status === 'completed') {
-            eventSource.close();
-            router.push(`/trips/${tripId}`);
-          } else if (progress.status === 'failed') {
-            eventSource.close();
-            setIsGenerating(false);
-            setErrors({ generation: progress.message || 'Generation failed' });
-          }
-        } catch (err) {
-          // Continue listening
-        }
-      };
-
-      eventSource.onerror = () => {
-        eventSource.close();
-        setIsGenerating(false);
-        setErrors({ generation: 'Connection lost during generation' });
-      };
+      // POST /api/trips runs generation synchronously; redirect to the trip page
+      router.push(`/trips/${tripId}`);
     } catch (err) {
       setIsGenerating(false);
       setErrors({

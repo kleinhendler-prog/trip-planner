@@ -6,9 +6,11 @@
 
 import { auth } from '@/app/api/auth/config';
 import { supabaseServer as supabase } from '@/lib/supabase';
-import { GenerationPipeline } from '@/lib/generation/pipeline';
-import type { CreateTripInput, Trip } from '@/types/index';
+import { generateTripItinerary } from '@/lib/generation/simple-pipeline';
+import type { CreateTripInput } from '@/types/index';
 import { v4 as uuidv4 } from 'uuid';
+
+export const maxDuration = 300;
 
 // Rate limiting: max 10 trips per hour per user
 const RATE_LIMIT_MAX = 10;
@@ -119,20 +121,15 @@ export async function POST(request: Request) {
       throw insertError;
     }
 
-    // Start generation pipeline in background
+    // Generate the itinerary synchronously (Vercel serverless can't run background tasks after response)
     try {
-      const trip = { ...tripData, days: [] } as unknown as Trip;
-      const pipeline = new GenerationPipeline(trip);
-      // Pipeline runs asynchronously
-      pipeline.run().catch((err) => {
-        console.error('Pipeline error for trip', tripId, err);
-      });
-    } catch (pipelineError) {
-      console.error('Failed to start pipeline:', pipelineError);
-      // Don't fail the request, pipeline errors are logged
+      await generateTripItinerary(tripId);
+    } catch (genError) {
+      console.error('Generation error for trip', tripId, genError);
+      // The status will be 'failed' in the DB; still return the trip ID so user can see it
     }
 
-    return Response.json({ trip_id: tripId }, { status: 201 });
+    return Response.json({ id: tripId, trip_id: tripId }, { status: 201 });
   } catch (error) {
     console.error('POST /api/trips error:', error);
     return Response.json(
