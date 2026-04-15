@@ -26,6 +26,7 @@ export default function HomePage() {
   const [error, setError] = useState('');
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [profileCompleted, setProfileCompleted] = useState(true);
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -35,7 +36,20 @@ export default function HomePage() {
 
   useEffect(() => {
     fetchTrips();
+    fetchProfile();
   }, []);
+
+  const fetchProfile = async () => {
+    try {
+      const response = await fetch('/api/profile');
+      if (response.ok) {
+        const data = await response.json();
+        setProfileCompleted(data.completed || false);
+      }
+    } catch (err) {
+      console.error('Failed to fetch profile:', err);
+    }
+  };
 
   const fetchTrips = async () => {
     try {
@@ -129,6 +143,21 @@ export default function HomePage() {
     <AppShell>
       <div className="min-h-screen bg-gray-50">
         <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
+          {/* Profile Completion Banner */}
+          {!profileCompleted && (
+            <div className="mb-6 rounded-lg bg-blue-50 border border-blue-200 p-4 flex items-center justify-between">
+              <p className="text-sm text-blue-900">
+                <span className="font-semibold">Complete your travel profile</span> to get more personalized trips
+              </p>
+              <Button
+                onClick={() => router.push('/profile-setup')}
+                className="ml-4 bg-blue-600 hover:bg-blue-700"
+              >
+                Set Up Profile
+              </Button>
+            </div>
+          )}
+
           {/* Header */}
           <div className="mb-8 flex items-center justify-between">
             <div>

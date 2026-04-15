@@ -43,8 +43,14 @@ const STEPS = [
   { id: 5, title: 'Review & Generate' },
 ];
 
+type TripStyle = 'single_city' | 'area' | 'road_trip';
+
 interface FormData {
+  tripStyle: TripStyle;
   destination: string;
+  startPoint: string;
+  endPoint: string;
+  maxDriveHours: number;
   startDate: string;
   endDate: string;
   adultsCount: number;
@@ -63,7 +69,11 @@ export default function TripCreationPage() {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState<FormData>({
+    tripStyle: 'single_city',
     destination: '',
+    startPoint: '',
+    endPoint: '',
+    maxDriveHours: 4,
     startDate: '',
     endDate: '',
     adultsCount: 1,
@@ -94,7 +104,12 @@ export default function TripCreationPage() {
     const newErrors: Record<string, string> = {};
 
     if (step === 1) {
-      if (!formData.destination) newErrors.destination = 'Destination is required';
+      if (formData.tripStyle === 'road_trip') {
+        if (!formData.startPoint) newErrors.startPoint = 'Starting point is required';
+        if (!formData.endPoint) newErrors.endPoint = 'Destination is required';
+      } else {
+        if (!formData.destination) newErrors.destination = 'Destination is required';
+      }
       if (!formData.startDate) newErrors.startDate = 'Start date is required';
       if (!formData.endDate) newErrors.endDate = 'End date is required';
       if (formData.startDate && formData.endDate && formData.startDate >= formData.endDate) {
@@ -136,13 +151,27 @@ export default function TripCreationPage() {
 
     try {
       // Create trip first
+      const destinationForTrip =
+        formData.tripStyle === 'road_trip'
+          ? `${formData.startPoint} → ${formData.endPoint}`
+          : formData.destination;
+
+      const tripOverrides: any = {};
+      if (formData.tripStyle === 'road_trip') {
+        tripOverrides.startPoint = formData.startPoint;
+        tripOverrides.endPoint = formData.endPoint;
+        tripOverrides.maxDriveHours = formData.maxDriveHours;
+      }
+
       const createResponse = await apiClient.post<Trip>('/trips', {
-        title: `Trip to ${formData.destination}`,
-        destination: formData.destination,
+        title: `Trip to ${destinationForTrip}`,
+        destination: destinationForTrip,
         startDate: formData.startDate,
         endDate: formData.endDate,
         travelers: formData.adultsCount + formData.childrenAges.length,
         tripType: formData.tripType,
+        tripStyle: formData.tripStyle,
+        tripOverrides,
         preferences: {
           interests: formData.interests,
           dislikes: formData.dislikes,
@@ -208,25 +237,103 @@ export default function TripCreationPage() {
               <CardTitle>{STEPS[currentStep - 1].title}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
-              {/* Step 1: Destination & Dates */}
+              {/* Step 1: Trip Style + Destination & Dates */}
               {currentStep === 1 && (
-                <div className="space-y-4">
-                  <Input
-                    label="Destination"
-                    placeholder="e.g., Paris, Tokyo, New York"
-                    value={formData.destination}
-                    onChange={(e) =>
-                      setFormData({ ...formData, destination: e.target.value })
-                    }
-                    error={!!errors.destination}
-                  />
+                <div className="space-y-5">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-900 mb-2">
+                      What kind of trip is this?
+                    </label>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                      {[
+                        { v: 'single_city' as const, emoji: '🏙️', label: 'Single city', desc: 'Stay in one place and explore' },
+                        { v: 'area' as const, emoji: '🗺️', label: 'Region / area', desc: 'e.g., Tuscany, Provence, Scotland' },
+                        { v: 'road_trip' as const, emoji: '🚗', label: 'Road trip', desc: 'Drive from A to B with stops' },
+                      ].map((opt) => (
+                        <button
+                          key={opt.v}
+                          type="button"
+                          onClick={() => setFormData({ ...formData, tripStyle: opt.v })}
+                          className={`p-3 rounded-lg border-2 text-left transition-all ${
+                            formData.tripStyle === opt.v
+                              ? 'border-blue-500 bg-blue-50'
+                              : 'border-gray-200 hover:border-gray-300'
+                          }`}
+                        >
+                          <div className="text-xl mb-1">{opt.emoji}</div>
+                          <div className="font-semibold text-sm">{opt.label}</div>
+                          <div className="text-xs text-gray-600">{opt.desc}</div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {formData.tripStyle === 'single_city' && (
+                    <Input
+                      label="Destination"
+                      placeholder="e.g., Paris, Tokyo, New York"
+                      value={formData.destination}
+                      onChange={(e) => setFormData({ ...formData, destination: e.target.value })}
+                      error={!!errors.destination}
+                    />
+                  )}
+
+                  {formData.tripStyle === 'area' && (
+                    <>
+                      <Input
+                        label="Region or area"
+                        placeholder="e.g., Tuscany, Scottish Highlands, Japanese Alps"
+                        value={formData.destination}
+                        onChange={(e) => setFormData({ ...formData, destination: e.target.value })}
+                        error={!!errors.destination}
+                      />
+                      <p className="text-xs text-gray-500 -mt-3">
+                        We&apos;ll propose 2-3 overnight bases so each day clusters around where you sleep.
+                      </p>
+                    </>
+                  )}
+
+                  {formData.tripStyle === 'road_trip' && (
+                    <>
+                      <Input
+                        label="Starting point"
+                        placeholder="e.g., San Francisco, Rome, Reykjavík"
+                        value={formData.startPoint}
+                        onChange={(e) => setFormData({ ...formData, startPoint: e.target.value, destination: e.target.value })}
+                        error={!!errors.startPoint}
+                      />
+                      <Input
+                        label="Ending point"
+                        placeholder="e.g., Los Angeles, Naples, Akureyri"
+                        value={formData.endPoint}
+                        onChange={(e) => setFormData({ ...formData, endPoint: e.target.value })}
+                        error={!!errors.endPoint}
+                      />
+                      <div>
+                        <label className="block text-sm font-medium text-gray-900 mb-2">
+                          Max driving per day: {formData.maxDriveHours} hours
+                        </label>
+                        <input
+                          type="range"
+                          min={2}
+                          max={10}
+                          step={1}
+                          value={formData.maxDriveHours}
+                          onChange={(e) => setFormData({ ...formData, maxDriveHours: parseInt(e.target.value) })}
+                          className="w-full"
+                        />
+                        <div className="flex justify-between text-xs text-gray-500">
+                          <span>2h (scenic)</span>
+                          <span>10h (long hauls)</span>
+                        </div>
+                      </div>
+                    </>
+                  )}
 
                   <DatePicker
                     label="Start Date"
                     value={formData.startDate}
-                    onChange={(e) =>
-                      setFormData({ ...formData, startDate: e.target.value })
-                    }
+                    onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
                     minDate={new Date().toISOString().split('T')[0]}
                     error={!!errors.startDate}
                   />
@@ -234,22 +341,16 @@ export default function TripCreationPage() {
                   <DatePicker
                     label="End Date"
                     value={formData.endDate}
-                    onChange={(e) =>
-                      setFormData({ ...formData, endDate: e.target.value })
-                    }
+                    onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
                     minDate={formData.startDate || new Date().toISOString().split('T')[0]}
                     error={!!errors.endDate}
                   />
 
-                  {errors.destination && (
-                    <p className="text-sm text-red-600">{errors.destination}</p>
-                  )}
-                  {errors.startDate && (
-                    <p className="text-sm text-red-600">{errors.startDate}</p>
-                  )}
-                  {errors.endDate && (
-                    <p className="text-sm text-red-600">{errors.endDate}</p>
-                  )}
+                  {errors.destination && <p className="text-sm text-red-600">{errors.destination}</p>}
+                  {errors.startPoint && <p className="text-sm text-red-600">{errors.startPoint}</p>}
+                  {errors.endPoint && <p className="text-sm text-red-600">{errors.endPoint}</p>}
+                  {errors.startDate && <p className="text-sm text-red-600">{errors.startDate}</p>}
+                  {errors.endDate && <p className="text-sm text-red-600">{errors.endDate}</p>}
                 </div>
               )}
 

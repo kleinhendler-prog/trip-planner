@@ -30,6 +30,12 @@ const Header = () => {
           >
             Sources
           </Link>
+          <Link
+            href="/profile-setup"
+            className="text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors"
+          >
+            Profile
+          </Link>
         </div>
 
         {/* Sign Out Button */}

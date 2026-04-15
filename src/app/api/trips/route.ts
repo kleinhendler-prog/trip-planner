@@ -98,6 +98,7 @@ export async function POST(request: Request) {
     const now = new Date();
 
     // Create trip with status='generating'
+    const body2 = body as any;
     const tripData = {
       id: tripId,
       user_id: session.user.id,
@@ -110,6 +111,8 @@ export async function POST(request: Request) {
         tripType: body.tripType,
         preferences: body.preferences || {},
       },
+      trip_type: body2.tripStyle || 'single_city',
+      trip_overrides: body2.tripOverrides || {},
       status: 'generating',
     };
 

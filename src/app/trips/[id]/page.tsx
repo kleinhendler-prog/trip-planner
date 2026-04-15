@@ -2,11 +2,17 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import dynamic from 'next/dynamic';
 import { AppShell } from '@/components/layout/app-shell';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { apiClient } from '@/lib/api-client';
+
+const ItineraryMap = dynamic(() => import('@/components/map/itinerary-map'), {
+  ssr: false,
+  loading: () => <div className="h-[500px] bg-gray-50 rounded-lg border flex items-center justify-center text-gray-500">Loading map…</div>,
+});
 
 interface SimpleActivity {
   time: string;
@@ -235,6 +241,16 @@ export default function TripViewPage() {
                 </ul>
               </div>
             )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Map</CardTitle>
+            <CardDescription>Numbered markers show the order within each day. Colors indicate different days.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ItineraryMap days={itin.days} />
           </CardContent>
         </Card>
 
