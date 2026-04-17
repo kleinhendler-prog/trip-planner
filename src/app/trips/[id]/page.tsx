@@ -62,6 +62,8 @@ const TYPE_EMOJI: Record<string, string> = {
   rest: '☕',
 };
 
+const DAY_COLORS = ['#3B82F6', '#EF4444', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899', '#14B8A6', '#F97316', '#6366F1', '#84CC16'];
+
 export default function TripViewPage() {
   const params = useParams();
   const router = useRouter();
@@ -284,9 +286,21 @@ export default function TripViewPage() {
                       </p>
                     )}
                     <div className="space-y-3">
-                      {day.activities.map((a, i) => (
+                      {day.activities.map((a, i) => {
+                        const dayColor = DAY_COLORS[(day.dayNumber - 1) % DAY_COLORS.length];
+                        const markerNum = i + 1;
+                        return (
                         <div key={i} className="flex gap-3 p-3 rounded-lg border hover:bg-gray-50">
-                          <div className="flex-shrink-0 text-2xl" title={a.type}>{TYPE_EMOJI[a.type] || '📍'}</div>
+                          <div className="flex-shrink-0 flex flex-col items-center gap-1">
+                            <div
+                              style={{ backgroundColor: dayColor }}
+                              className="w-7 h-7 rounded-full flex items-center justify-center text-white font-bold text-xs border-2 border-white shadow"
+                              title={`Map marker ${markerNum}`}
+                            >
+                              {markerNum}
+                            </div>
+                            <span className="text-lg" title={a.type}>{TYPE_EMOJI[a.type] || '📍'}</span>
+                          </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-baseline gap-2 flex-wrap">
                               <span className="text-sm font-mono text-blue-600">{a.time}</span>
@@ -307,7 +321,8 @@ export default function TripViewPage() {
                             )}
                           </div>
                         </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </CardContent>
                 )}

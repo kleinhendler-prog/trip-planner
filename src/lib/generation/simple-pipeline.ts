@@ -140,20 +140,25 @@ Interests: ${interests} · Avoid: ${dislikes} · Currency: ${trip.currency || 'E
 ${tripContext ? '\n' + tripContext + '\n' : ''}
 ${travelerProfileSection}Use this detailed traveler profile to tailor venue choices, pacing, dining recommendations, and activity intensity.
 
-Real venue names, geographic clustering. Concise descriptions (max 1 sentence each). Include approximate lat/lng for each activity (decimal degrees). Return ONLY valid JSON (no markdown):
+Real venue names, geographic clustering. Concise descriptions (max 1 sentence each). Return ONLY valid JSON (no markdown).
+
+CRITICAL RULES:
+1. EVERY activity MUST have "location" with "lat" and "lng" (decimal degrees) — restaurants, cafés, transport hubs, rest stops, ALL of them. No exceptions. An activity without lat/lng is invalid.
+2. Tips must be ACTIONABLE PRE-VISIT advice (e.g. "Book tickets online at officialsite.com to skip the queue", "Reserve a table 2 days ahead"). Never give a timing tip that contradicts the scheduled time.
+3. If you recommend visiting a place at a specific time of day in tips, schedule it at that time. Scheduling and tips must be consistent.
 
 {
   "summary": "1 sentence",
   "highlights": ["4 short items"],
   "days": [
-    {"dayNumber": 1, "date": "${trip.start_date}", "theme": "2-3 word theme", "neighborhood": "main area", "activities": [{"time": "09:00", "name": "real venue", "description": "1 short sentence", "type": "attraction", "duration": "2h", "location": {"name": "venue", "lat": 41.8902, "lng": 12.4922}, "tips": "brief tip", "estimatedCost": "€X"}], "narration": "1 short sentence"}
+    {"dayNumber": 1, "date": "${trip.start_date}", "theme": "2-3 word theme", "neighborhood": "main area", "activities": [{"time": "09:00", "name": "Colosseum", "description": "1 short sentence", "type": "attraction", "duration": "2h", "location": {"name": "Colosseum", "address": "Piazza del Colosseo", "lat": 41.8902, "lng": 12.4922}, "tips": "Book skip-the-line tickets at coopculture.it", "estimatedCost": "€16"}, {"time": "12:00", "name": "Roscioli", "description": "Famous Roman pasta", "type": "meal", "duration": "1h", "location": {"name": "Roscioli", "address": "Via dei Giubbonari 21", "lat": 41.8955, "lng": 12.4730}, "tips": "Reserve ahead — very popular", "estimatedCost": "€25"}], "narration": "1 short sentence"}
   ],
   "hotelRecommendations": [{"name": "real hotel", "area": "area", "priceRange": "€X-Y", "why": "brief"}],
   "budgetEstimate": {"perDay": "€X", "total": "€Y", "breakdown": "food/activities/transport"},
   "practicalTips": ["3 tips"]
 }
 
-5 activities per day. 2 hotel options. Keep strings SHORT to fit token limit. lat/lng required for every activity.`;
+5 activities per day. 2 hotel options. Keep strings SHORT to fit token limit. EVERY activity MUST include lat and lng — no exceptions.`;
 }
 
 export async function generateTripItinerary(tripId: string): Promise<SimpleItinerary> {
