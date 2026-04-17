@@ -73,11 +73,13 @@ export default function ItineraryMap({ days }: ItineraryMapProps) {
   // Collect all markers with coordinates
   const markers: MarkerInfo[] = [];
   days.forEach((day) => {
-    day.activities.forEach((act, idx) => {
+    let markerCount = 0; // Sequential counter per day (only for activities with coordinates)
+    day.activities.forEach((act) => {
       if (act.location?.lat != null && act.location?.lng != null) {
+        markerCount++;
         markers.push({
           dayNumber: day.dayNumber,
-          order: idx + 1,
+          order: markerCount,
           lat: act.location.lat,
           lng: act.location.lng,
           name: act.name,
