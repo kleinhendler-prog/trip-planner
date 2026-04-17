@@ -1,45 +1,84 @@
 /**
- * Simple one-shot trip generation pipeline
- * Calls Claude once with all trip params to get a complete itinerary
+ * Trip generation pipeline — one-shot Claude call producing a rich itinerary
  */
 
 import { callClaudeJSON } from '../claude';
 import { supabaseServer as supabase } from '../supabase';
 
+/* ── Rich Itinerary Types ────────────────────────────────── */
+
+export interface ActivityLocation {
+  name: string;
+  address?: string;
+  lat?: number;
+  lng?: number;
+}
+
+export interface ItineraryActivity {
+  time: string;
+  name: string;
+  description: string;
+  type: 'attraction' | 'meal' | 'transport' | 'experience' | 'rest';
+  duration: string;
+  location: ActivityLocation;
+  info: string;            // Opening hours, closure days
+  tips?: string;           // Actionable pre-visit advice
+  estimatedCost?: string;  // e.g. "€16"
+  reservationStatus: 'REQUIRED' | 'RECOMMENDED' | 'WALK_IN_OK';
+  priority: number;        // 1-5, higher = more important
+  guideNarration?: string; // Tour-guide-style text for priority >= 4
+  transitFromPrev?: string; // e.g. "12 min walk" or "8 min metro"
+  isOutdoor?: boolean;
+  rainyDayAlternative?: string; // Name of indoor backup if outdoor
+  bookingUrl?: string;     // Direct booking link if known
+}
+
+export interface ItineraryDay {
+  dayNumber: number;
+  date: string;
+  theme: string;
+  neighborhood?: string;
+  activities: ItineraryActivity[];
+  narration?: string;
+  dailyBudget?: { activities: number; meals: number; total: number };
+}
+
+export interface HotelRecommendation {
+  name: string;
+  area: string;
+  priceRange: string;
+  why: string;
+  bookingUrl?: string;
+  starRating?: number;
+}
+
+export interface LocalFind {
+  name: string;
+  type: 'tasting' | 'shop' | 'street' | 'market' | 'workshop' | 'experience';
+  description: string;
+  location?: ActivityLocation;
+  estimatedCost?: string;
+}
+
 export interface SimpleItinerary {
   summary: string;
   highlights: string[];
-  days: Array<{
-    dayNumber: number;
-    date: string;
-    theme: string;
-    neighborhood?: string;
-    activities: Array<{
-      time: string;
-      name: string;
-      description: string;
-      type: 'attraction' | 'meal' | 'transport' | 'experience' | 'rest';
-      duration: string;
-      location?: { name: string; address?: string; lat?: number; lng?: number };
-      info?: string;
-      tips?: string;
-      estimatedCost?: string;
-    }>;
-    narration?: string;
-  }>;
-  hotelRecommendations?: Array<{
-    name: string;
-    area: string;
-    priceRange: string;
-    why: string;
-  }>;
+  days: ItineraryDay[];
+  hotelRecommendations?: HotelRecommendation[];
   budgetEstimate?: {
     perDay: string;
     total: string;
     breakdown: string;
+    activitiesTotal: number;
+    mealsTotal: number;
+    hotelsTotal: number;
   };
   practicalTips?: string[];
+  localFinds?: LocalFind[];
+  climateNote?: string;
 }
+
+/* ── Traveler Profile Builder ───────────────────────────── */
 
 function buildTravelerProfileSection(userProfile: any): string {
   if (!userProfile || Object.keys(userProfile).length === 0) {
@@ -106,6 +145,8 @@ function buildTravelerProfileSection(userProfile: any): string {
   return 'Traveler Profile:\n' + parts.join('\n') + '\n\n';
 }
 
+/* ── Prompt Builder ─────────────────────────────────────── */
+
 function buildPrompt(trip: any, userProfile?: any): string {
   const profile = trip.profile || {};
   const prefs = profile.preferences || {};
@@ -141,27 +182,55 @@ Interests: ${interests} · Avoid: ${dislikes} · Currency: ${trip.currency || 'E
 ${tripContext ? '\n' + tripContext + '\n' : ''}
 ${travelerProfileSection}Use this detailed traveler profile to tailor venue choices, pacing, dining recommendations, and activity intensity.
 
-Real venue names, geographic clustering. Concise descriptions (max 1 sentence each). Return ONLY valid JSON (no markdown).
+Real venue names, geographic clustering. Concise descriptions (1 sentence max). Return ONLY valid JSON (no markdown).
 
 CRITICAL RULES:
-1. EVERY activity MUST have "location" with "lat" and "lng" (decimal degrees) — restaurants, cafés, transport hubs, rest stops, ALL of them. No exceptions. An activity without lat/lng is invalid.
-2. EVERY activity MUST have "info" with opening hours and closure days (e.g. "Open 9:00–17:00. Closed Mondays."). For restaurants include service hours. Account for national holidays and seasonal closures during the trip dates — NEVER schedule a visit on a day the venue is closed.
-3. Tips must be ACTIONABLE PRE-VISIT advice (e.g. "Book tickets online at officialsite.com to skip the queue", "Reserve a table 2 days ahead"). Never give a timing tip that contradicts the scheduled time.
-4. If you recommend visiting a place at a specific time of day in tips, schedule it at that time. Scheduling and tips must be consistent.
+1. EVERY activity MUST have "location" with "lat" and "lng" (decimal degrees). No exceptions.
+2. EVERY activity MUST have "info" with opening hours and closure days. Account for holidays — NEVER schedule on closed days.
+3. EVERY activity MUST have "reservationStatus": "REQUIRED" (must book ahead), "RECOMMENDED" (walk-ins risky), or "WALK_IN_OK".
+4. EVERY activity MUST have "priority": 1-5. Top 2-3 attractions per day get 4-5; meals get 2-3.
+5. Activities with priority >= 4 MUST have "guideNarration": 2-3 sentences of engaging, tour-guide-style narration adapted to the traveler profile.
+6. EVERY activity (except the first of each day) MUST have "transitFromPrev": e.g. "8 min walk", "15 min metro", "~20 min bus".
+7. Outdoor activities MUST have "isOutdoor": true and "rainyDayAlternative": name of a nearby indoor alternative.
+8. REQUIRED/RECOMMENDED items should have "bookingUrl" if known (official site or constructed search URL).
+9. Tips must be ACTIONABLE PRE-VISIT advice. Scheduling and tips must be consistent.
+10. Include "dailyBudget" per day: {"activities": N, "meals": N, "total": N} as numbers in ${trip.currency || 'EUR'}.
+11. Include "localFinds": 5-10 local tastings, shops, markets, workshops, or beautiful streets worth exploring.
+12. Include "climateNote": 1 sentence about typical weather for this destination during the trip dates.
 
+JSON structure:
 {
   "summary": "1 sentence",
-  "highlights": ["4 short items"],
+  "highlights": ["4 items"],
+  "climateNote": "Weather summary for these dates",
   "days": [
-    {"dayNumber": 1, "date": "${trip.start_date}", "theme": "2-3 word theme", "neighborhood": "main area", "activities": [{"time": "09:00", "name": "Colosseum", "description": "1 short sentence", "type": "attraction", "duration": "2h", "location": {"name": "Colosseum", "address": "Piazza del Colosseo", "lat": 41.8902, "lng": 12.4922}, "info": "Open 9:00–19:00 daily. Last entry 1h before closing.", "tips": "Book skip-the-line tickets at coopculture.it", "estimatedCost": "€16"}, {"time": "12:00", "name": "Roscioli", "description": "Famous Roman pasta", "type": "meal", "duration": "1h", "location": {"name": "Roscioli", "address": "Via dei Giubbonari 21", "lat": 41.8955, "lng": 12.4730}, "info": "Lunch 12:30–14:30, Dinner 19:00–23:00. Closed Sundays.", "tips": "Reserve ahead — very popular", "estimatedCost": "€25"}], "narration": "1 short sentence"}
+    {"dayNumber": 1, "date": "${trip.start_date}", "theme": "short theme", "neighborhood": "area",
+     "dailyBudget": {"activities": 50, "meals": 60, "total": 110},
+     "activities": [
+       {"time": "09:00", "name": "Colosseum", "description": "Iconic Roman amphitheatre", "type": "attraction", "duration": "2h",
+        "location": {"name": "Colosseum", "address": "Piazza del Colosseo", "lat": 41.8902, "lng": 12.4922},
+        "info": "Open 9:00-19:00 daily. Last entry 1h before.", "tips": "Book at coopculture.it to skip queue",
+        "estimatedCost": "€16", "reservationStatus": "REQUIRED", "priority": 5, "bookingUrl": "https://www.coopculture.it",
+        "guideNarration": "Step through the same arches gladiators used 2000 years ago. This 50,000-seat arena hosted spectacles from dawn to dusk.",
+        "isOutdoor": true, "rainyDayAlternative": "Palazzo Doria Pamphilj"},
+       {"time": "12:00", "name": "Roscioli", "description": "Famous Roman pasta", "type": "meal", "duration": "1h",
+        "location": {"name": "Roscioli", "address": "Via dei Giubbonari 21", "lat": 41.8955, "lng": 12.4730},
+        "info": "Lunch 12:30-14:30, Dinner 19:00-23:00. Closed Sun.", "tips": "Reserve 2 days ahead",
+        "estimatedCost": "€25", "reservationStatus": "RECOMMENDED", "priority": 3, "transitFromPrev": "12 min walk"}
+     ],
+     "narration": "1 short sentence about the day"
+    }
   ],
-  "hotelRecommendations": [{"name": "real hotel", "area": "area", "priceRange": "€X-Y", "why": "brief"}],
-  "budgetEstimate": {"perDay": "€X", "total": "€Y", "breakdown": "food/activities/transport"},
-  "practicalTips": ["3 tips"]
+  "hotelRecommendations": [{"name": "Hotel Eden", "area": "Via Veneto", "priceRange": "€200-350", "why": "brief reason", "starRating": 5, "bookingUrl": "https://booking.com/search?ss=Hotel+Eden+Rome"}],
+  "budgetEstimate": {"perDay": "€X", "total": "€Y", "breakdown": "summary", "activitiesTotal": 200, "mealsTotal": 300, "hotelsTotal": 1000},
+  "practicalTips": ["3-4 tips"],
+  "localFinds": [{"name": "Supplizio", "type": "tasting", "description": "Best supplì in Rome", "location": {"name": "Supplizio", "lat": 41.8986, "lng": 12.4733}, "estimatedCost": "€5"}]
 }
 
-5 activities per day. 2 hotel options. Keep strings SHORT to fit token limit. EVERY activity MUST include lat, lng, AND info — no exceptions.`;
+5 activities per day. 2 hotel options. Keep strings SHORT. Every field listed above is REQUIRED — omitting any field is invalid.`;
 }
+
+/* ── Generation Function ────────────────────────────────── */
 
 export async function generateTripItinerary(tripId: string): Promise<SimpleItinerary> {
   // Fetch trip
@@ -192,7 +261,7 @@ export async function generateTripItinerary(tripId: string): Promise<SimpleItine
 
     const prompt = buildPrompt(trip, userProfile);
     const itinerary = await callClaudeJSON<SimpleItinerary>(prompt, {
-      maxTokens: 8000,
+      maxTokens: 12000,
       temperature: 0.5,
     });
 

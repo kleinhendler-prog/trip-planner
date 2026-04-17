@@ -52,12 +52,20 @@ html {
 
 /* Print styles for PDF export */
 @media print {
-  /* Hide navigation */
+  /* Hide navigation, buttons, and interactive elements */
   header,
   nav,
   .nav-hidden,
-  [role="navigation"] {
+  [role="navigation"],
+  button,
+  textarea,
+  .fixed {
     display: none !important;
+  }
+
+  /* But show card content (even collapsed) */
+  [class*="CardContent"] {
+    display: block !important;
   }
 
   /* Page breaks */
