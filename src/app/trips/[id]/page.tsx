@@ -21,6 +21,7 @@ interface SimpleActivity {
   type: string;
   duration: string;
   location?: { name: string; address?: string };
+  info?: string;
   tips?: string;
   estimatedCost?: string;
 }
@@ -312,6 +313,11 @@ export default function TripViewPage() {
                             {a.location && (
                               <p className="text-xs text-gray-500 mt-1">
                                 📍 {a.location.name}{a.location.address ? ` · ${a.location.address}` : ''}
+                              </p>
+                            )}
+                            {a.info && (
+                              <p className="text-xs text-gray-600 mt-2 bg-gray-50 p-2 rounded">
+                                🕐 {a.info}
                               </p>
                             )}
                             {a.tips && (
