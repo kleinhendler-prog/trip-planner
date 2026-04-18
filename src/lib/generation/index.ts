@@ -12,4 +12,5 @@ export {
   generateItinerarySummaryPrompt,
   generateQAReviewPrompt,
 } from './prompts';
-export { validateItinerary, checkForZigzags, checkMeals, checkScheduleConflicts, checkTravelFeasibility, runFullQA } from './qa-simulator';
+export { validateItinerary, runFullQA } from './qa-simulator';
+export type { QACheckResult } from './qa-simulator';

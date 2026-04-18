@@ -4,6 +4,7 @@
 
 import { callClaudeJSON } from '../claude';
 import { supabaseServer as supabase } from '../supabase';
+import { validateItinerary } from './qa-simulator';
 
 /* ── Rich Itinerary Types ────────────────────────────────── */
 
@@ -265,11 +266,29 @@ export async function generateTripItinerary(tripId: string): Promise<SimpleItine
       temperature: 0.5,
     });
 
-    // Save to trip
+    // Run QA validation
+    const qa = validateItinerary(itinerary);
+    console.log(`[QA] Trip ${tripId}: passed=${qa.passed}, issues=${qa.issues.length}, warnings=${qa.warnings.length}`);
+    if (qa.issues.length > 0) {
+      console.warn(`[QA] Issues:`, qa.issues);
+    }
+    if (qa.warnings.length > 0) {
+      console.log(`[QA] Warnings:`, qa.warnings);
+    }
+
+    // Save to trip (include QA results)
     await (supabase as any)
       .from('trips')
       .update({
-        itinerary: itinerary,
+        itinerary: {
+          ...itinerary,
+          qa: {
+            passed: qa.passed,
+            issues: qa.issues,
+            warnings: qa.warnings,
+            checkedAt: new Date().toISOString(),
+          },
+        },
         status: 'ready',
       })
       .eq('id', tripId);

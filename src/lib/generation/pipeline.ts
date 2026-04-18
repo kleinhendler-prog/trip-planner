@@ -408,7 +408,7 @@ export class GenerationPipeline {
     await this.setStepProgress('qa_review', 'running');
 
     try {
-      const qaResult = runFullQA(this.itinerary as Itinerary);
+      const qaResult = runFullQA(this.itinerary as any);
 
       if (!qaResult.passed) {
         console.warn('QA issues found:', qaResult.summary.issues);

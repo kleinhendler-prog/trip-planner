@@ -147,6 +147,15 @@ export default function TripViewPage() {
   const [dayNotes, setDayNotes] = useState<Record<number, string>>({});
   const [budgetCollapsed, setBudgetCollapsed] = useState(true);
 
+  // Suggest-alternative state
+  const [altLoading, setAltLoading] = useState<string | null>(null); // "dayIdx-actIdx"
+  const [altSuggestion, setAltSuggestion] = useState<{
+    dayIndex: number;
+    activityIndex: number;
+    suggestion: Activity & { whySuggested?: string };
+    attempt: number;
+  } | null>(null);
+
   const fetchTrip = useCallback(async () => {
     try {
       const response = await apiClient.get<TripRecord>(`/trips/${tripId}`);
@@ -206,6 +215,73 @@ export default function TripViewPage() {
       if (next.has(n)) next.delete(n); else next.add(n);
       return next;
     });
+  };
+
+  /* ── Suggest Alternative Handlers ─────────────────────── */
+
+  const requestAlternative = async (dayIdx: number, actIdx: number, attempt = 1) => {
+    const key = `${dayIdx}-${actIdx}`;
+    setAltLoading(key);
+    setAltSuggestion(null);
+    try {
+      const res = await apiClient.post<{
+        suggestion: Activity & { whySuggested?: string };
+        attempt: number;
+      }>(`/trips/${tripId}/swap-activity`, {
+        day_index: dayIdx,
+        activity_index: actIdx,
+        attempt,
+      });
+      if (res.success && res.data) {
+        setAltSuggestion({
+          dayIndex: dayIdx,
+          activityIndex: actIdx,
+          suggestion: res.data.suggestion,
+          attempt: res.data.attempt,
+        });
+      } else {
+        alert('Failed to get suggestion. Please try again.');
+      }
+    } catch {
+      alert('Failed to get suggestion. Please try again.');
+    } finally {
+      setAltLoading(null);
+    }
+  };
+
+  const approveAlternative = async () => {
+    if (!altSuggestion) return;
+    setAltLoading(`${altSuggestion.dayIndex}-${altSuggestion.activityIndex}`);
+    try {
+      const res = await apiClient.put(`/trips/${tripId}/swap-activity`, {
+        day_index: altSuggestion.dayIndex,
+        activity_index: altSuggestion.activityIndex,
+        replacement: altSuggestion.suggestion,
+      });
+      if (res.success) {
+        setAltSuggestion(null);
+        await fetchTrip(); // Refresh to see the updated itinerary
+      } else {
+        alert('Failed to apply alternative.');
+      }
+    } catch {
+      alert('Failed to apply alternative.');
+    } finally {
+      setAltLoading(null);
+    }
+  };
+
+  const denyAlternative = () => {
+    setAltSuggestion(null);
+  };
+
+  const reSuggestAlternative = () => {
+    if (!altSuggestion || altSuggestion.attempt >= 3) return;
+    requestAlternative(
+      altSuggestion.dayIndex,
+      altSuggestion.activityIndex,
+      altSuggestion.attempt + 1
+    );
   };
 
   /* ── Loading / Error / Generating States ──────────────── */
@@ -625,7 +701,87 @@ export default function TripViewPage() {
                                       &#x1F4D6; Read Guide
                                     </Button>
                                   )}
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="text-xs h-7 text-orange-600 border-orange-200"
+                                    disabled={altLoading === `${itin.days.indexOf(day)}-${i}`}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      requestAlternative(itin.days.indexOf(day), i);
+                                    }}
+                                  >
+                                    {altLoading === `${itin.days.indexOf(day)}-${i}` ? (
+                                      <span className="animate-spin inline-block mr-1">&#x21BB;</span>
+                                    ) : '&#x1F504; '}
+                                    Suggest Alternative
+                                  </Button>
                                 </div>
+
+                                {/* Suggestion Panel (inline) */}
+                                {altSuggestion &&
+                                  altSuggestion.dayIndex === itin.days.indexOf(day) &&
+                                  altSuggestion.activityIndex === i && (
+                                  <div className="mt-3 p-3 rounded-lg border-2 border-orange-300 bg-orange-50 space-y-2">
+                                    <div className="flex items-center justify-between">
+                                      <h4 className="font-semibold text-orange-800 text-sm">
+                                        Suggested Alternative (Attempt {altSuggestion.attempt}/3)
+                                      </h4>
+                                    </div>
+                                    <div className="bg-white rounded p-3 border">
+                                      <div className="flex items-baseline gap-2 flex-wrap">
+                                        <span className="text-sm font-mono text-blue-600">{altSuggestion.suggestion.time}</span>
+                                        <span className="font-semibold">{altSuggestion.suggestion.name}</span>
+                                        {altSuggestion.suggestion.duration && <Badge variant="outline">{altSuggestion.suggestion.duration}</Badge>}
+                                        {altSuggestion.suggestion.estimatedCost && <Badge variant="secondary">{altSuggestion.suggestion.estimatedCost}</Badge>}
+                                        {altSuggestion.suggestion.reservationStatus && (
+                                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${RES_BADGE[altSuggestion.suggestion.reservationStatus]?.color || ''}`}>
+                                            {RES_BADGE[altSuggestion.suggestion.reservationStatus]?.label}
+                                          </span>
+                                        )}
+                                      </div>
+                                      <p className="text-gray-700 mt-1 text-sm">{altSuggestion.suggestion.description}</p>
+                                      {altSuggestion.suggestion.whySuggested && (
+                                        <p className="text-xs text-orange-700 mt-1 italic">&#x1F4A1; {altSuggestion.suggestion.whySuggested}</p>
+                                      )}
+                                      {altSuggestion.suggestion.info && (
+                                        <p className="text-xs text-gray-600 mt-1">&#x1F552; {altSuggestion.suggestion.info}</p>
+                                      )}
+                                      {altSuggestion.suggestion.tips && (
+                                        <p className="text-xs text-blue-700 mt-1">&#x1F4A1; {altSuggestion.suggestion.tips}</p>
+                                      )}
+                                    </div>
+                                    <div className="flex gap-2 mt-2">
+                                      <Button
+                                        size="sm"
+                                        className="bg-green-600 hover:bg-green-700 text-white text-xs"
+                                        onClick={(e) => { e.stopPropagation(); approveAlternative(); }}
+                                        disabled={!!altLoading}
+                                      >
+                                        {altLoading ? 'Applying...' : '&#x2705; Approve'}
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="text-xs"
+                                        onClick={(e) => { e.stopPropagation(); denyAlternative(); }}
+                                      >
+                                        &#x274C; Deny
+                                      </Button>
+                                      {altSuggestion.attempt < 3 && (
+                                        <Button
+                                          size="sm"
+                                          variant="outline"
+                                          className="text-xs text-orange-600 border-orange-200"
+                                          onClick={(e) => { e.stopPropagation(); reSuggestAlternative(); }}
+                                          disabled={!!altLoading}
+                                        >
+                                          &#x1F504; Re-suggest ({3 - altSuggestion.attempt} left)
+                                        </Button>
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
                               </div>
                             </div>
                           </div>

@@ -1,112 +1,314 @@
-import type { Itinerary, Activity, QACheckResult, DailyItinerary } from '@/types/index';
-
 /**
- * Comprehensive QA check for generated itineraries
+ * QA Simulator for SimpleItinerary
+ * Validates generated itineraries for logical consistency, completeness, and quality.
  */
-export function validateItinerary(itinerary: Itinerary): QACheckResult {
+
+import type {
+  SimpleItinerary,
+  ItineraryDay,
+  ItineraryActivity,
+} from './simple-pipeline';
+
+export interface QACheckResult {
+  passed: boolean;
+  issues: string[];   // Hard failures — should block or trigger re-generation
+  warnings: string[]; // Soft issues — worth logging but not blocking
+}
+
+/* ── Helpers ────────────────────────────────────────────── */
+
+/** Parse "HH:MM" → total minutes from midnight */
+function parseTime(t: string): number {
+  const [h, m] = t.split(':').map(Number);
+  return (h || 0) * 60 + (m || 0);
+}
+
+/** Parse duration strings like "2h", "1.5h", "45min", "1h30" → minutes */
+function parseDuration(d: string): number {
+  if (!d) return 0;
+  const s = d.toLowerCase().trim();
+
+  // "2h30" or "2h30min"
+  const hm = s.match(/^(\d+(?:\.\d+)?)\s*h\s*(\d+)?/);
+  if (hm) {
+    const hours = parseFloat(hm[1]);
+    const mins = hm[2] ? parseInt(hm[2], 10) : 0;
+    return Math.round(hours * 60 + mins);
+  }
+
+  // "45min" or "45 min"
+  const minOnly = s.match(/^(\d+)\s*min/);
+  if (minOnly) return parseInt(minOnly[1], 10);
+
+  // Plain number → assume minutes
+  const plain = parseFloat(s);
+  if (!isNaN(plain)) return Math.round(plain);
+
+  return 0;
+}
+
+/** Parse cost string "€16" / "$25" / "15" → number */
+function parseCost(c: string | undefined): number {
+  if (!c) return 0;
+  const n = parseFloat(c.replace(/[^0-9.]/g, ''));
+  return isNaN(n) ? 0 : n;
+}
+
+/** Check if indices are consecutive (no gaps) */
+function isConsecutive(indices: number[]): boolean {
+  for (let i = 1; i < indices.length; i++) {
+    if (indices[i] !== indices[i - 1] + 1) return false;
+  }
+  return true;
+}
+
+/* ── Individual Checks ──────────────────────────────────── */
+
+/** Check 1: Every day has activities */
+function checkEmptyDays(itinerary: SimpleItinerary): QACheckResult {
   const issues: string[] = [];
   const warnings: string[] = [];
 
-  // Check 1: All days have activities
-  itinerary.days.forEach((day: DailyItinerary, idx: number) => {
+  itinerary.days.forEach((day) => {
     if (!day.activities || day.activities.length === 0) {
-      issues.push(`Day ${idx + 1} (${day.date}) has no activities scheduled`);
+      issues.push(`Day ${day.dayNumber} (${day.date}) has no activities`);
     }
   });
 
-  // Check 2: Meals are scheduled appropriately
-  itinerary.days.forEach((day: DailyItinerary, idx: number) => {
-    const mealTimes = day.meals
-      ? Object.entries(day.meals).filter(([_, meal]: [string, any]) => meal)
-      : [];
+  return { passed: issues.length === 0, issues, warnings };
+}
 
-    if (mealTimes.length < 2) {
+/** Check 2: Each day has at least one meal */
+function checkMeals(itinerary: SimpleItinerary): QACheckResult {
+  const issues: string[] = [];
+  const warnings: string[] = [];
+
+  itinerary.days.forEach((day) => {
+    const meals = (day.activities || []).filter((a) => a.type === 'meal');
+    if (meals.length === 0) {
+      issues.push(`Day ${day.dayNumber} has no meals scheduled`);
+    } else if (meals.length < 2) {
       warnings.push(
-        `Day ${idx + 1} has fewer than 2 meals - consider adding breakfast/lunch/dinner`
+        `Day ${day.dayNumber} has only ${meals.length} meal — consider adding lunch/dinner`
       );
     }
   });
 
-  // Check 3: No logical conflicts (activities at same time)
-  itinerary.days.forEach((day: DailyItinerary, dayIdx: number) => {
-    const sortedActivities = [...(day.activities || [])]
-      .sort((a, b) => a.startTime.localeCompare(b.startTime));
+  return { passed: issues.length === 0, issues, warnings };
+}
 
-    for (let i = 0; i < sortedActivities.length - 1; i++) {
-      const current = sortedActivities[i];
-      const next = sortedActivities[i + 1];
+/** Check 3: No schedule overlaps */
+function checkScheduleConflicts(itinerary: SimpleItinerary): QACheckResult {
+  const issues: string[] = [];
+  const warnings: string[] = [];
 
-      const currentEndTime = calculateEndTime(current.startTime, current.duration || 0);
-      if (currentEndTime > next.startTime) {
+  itinerary.days.forEach((day) => {
+    const acts = [...(day.activities || [])].sort(
+      (a, b) => parseTime(a.time) - parseTime(b.time)
+    );
+
+    for (let i = 0; i < acts.length - 1; i++) {
+      const cur = acts[i];
+      const next = acts[i + 1];
+      const curEnd = parseTime(cur.time) + parseDuration(cur.duration);
+      const nextStart = parseTime(next.time);
+
+      if (curEnd > nextStart) {
         issues.push(
-          `Day ${dayIdx + 1}: "${current.title}" ends after "${next.title}" starts`
+          `Day ${day.dayNumber}: "${cur.name}" ends at ${formatMins(curEnd)} but "${next.name}" starts at ${next.time}`
         );
       }
     }
   });
 
-  // Check 4: Realistic activity durations
-  itinerary.days.forEach((day, dayIdx) => {
-    day.activities?.forEach((activity) => {
-      if (activity.duration && activity.duration < 15) {
+  return { passed: issues.length === 0, issues, warnings };
+}
+
+/** Check 4: Realistic activity durations */
+function checkDurations(itinerary: SimpleItinerary): QACheckResult {
+  const issues: string[] = [];
+  const warnings: string[] = [];
+
+  itinerary.days.forEach((day) => {
+    (day.activities || []).forEach((a) => {
+      const mins = parseDuration(a.duration);
+      if (mins < 15) {
         warnings.push(
-          `Day ${dayIdx + 1}: "${activity.title}" is very short (${activity.duration}min)`
+          `Day ${day.dayNumber}: "${a.name}" is very short (${a.duration})`
         );
       }
-
-      if (activity.duration && activity.duration > 480) {
+      if (mins > 480) {
         warnings.push(
-          `Day ${dayIdx + 1}: "${activity.title}" is very long (${activity.duration}min)`
+          `Day ${day.dayNumber}: "${a.name}" is very long (${a.duration})`
         );
       }
     });
   });
 
-  // Check 5: No zigzagging (same location visited twice in one day)
-  itinerary.days.forEach((day, dayIdx) => {
+  return { passed: true, issues, warnings };
+}
+
+/** Check 5: Zigzag detection — same location area visited non-consecutively */
+function checkZigzags(itinerary: SimpleItinerary): QACheckResult {
+  const issues: string[] = [];
+  const warnings: string[] = [];
+
+  itinerary.days.forEach((day) => {
     const locations: Record<string, number[]> = {};
 
-    day.activities?.forEach((activity, actIdx) => {
-      const loc = activity.location?.name || 'unknown';
-      if (!locations[loc]) {
-        locations[loc] = [];
-      }
-      locations[loc].push(actIdx);
+    (day.activities || []).forEach((a, idx) => {
+      const loc = a.location?.name || 'unknown';
+      if (!locations[loc]) locations[loc] = [];
+      locations[loc].push(idx);
     });
 
     Object.entries(locations).forEach(([loc, indices]) => {
       if (indices.length > 1 && !isConsecutive(indices)) {
         warnings.push(
-          `Day ${dayIdx + 1}: Multiple visits to "${loc}" with other activities in between (potential zigzagging)`
+          `Day ${day.dayNumber}: Multiple visits to "${loc}" with other stops in between (zigzagging)`
         );
       }
     });
   });
 
-  // Check 6: Sufficient breaks/rest time
-  itinerary.days.forEach((day, dayIdx) => {
-    const activities = day.activities || [];
-    const workMinutes = activities.reduce((sum, a) => sum + (a.duration || 0), 0);
-    const hoursInDay = 16; // 8am-12am
-    const minutesInDay = hoursInDay * 60;
-    const restMinutes = minutesInDay - workMinutes;
+  return { passed: true, issues, warnings };
+}
 
-    if (restMinutes < 120) {
+/** Check 6: Overly packed days */
+function checkPacedDays(itinerary: SimpleItinerary): QACheckResult {
+  const issues: string[] = [];
+  const warnings: string[] = [];
+
+  itinerary.days.forEach((day) => {
+    const acts = day.activities || [];
+    if (acts.length > 8) {
       warnings.push(
-        `Day ${dayIdx + 1}: Very little rest time (only ${restMinutes}min). Consider reducing activities`
+        `Day ${day.dayNumber}: Very packed with ${acts.length} activities`
+      );
+    }
+
+    // Check total active minutes
+    const totalMins = acts.reduce((s, a) => s + parseDuration(a.duration), 0);
+    const restMins = 16 * 60 - totalMins; // assume 16 waking hours
+    if (restMins < 90) {
+      warnings.push(
+        `Day ${day.dayNumber}: Very little free time (only ${restMins} min rest)`
       );
     }
   });
 
-  // Check 7: Cost tracking
+  return { passed: true, issues, warnings };
+}
+
+/** Check 7: Reasonable hours (not too early / too late) */
+function checkReasonableHours(itinerary: SimpleItinerary): QACheckResult {
+  const issues: string[] = [];
+  const warnings: string[] = [];
+
+  itinerary.days.forEach((day) => {
+    (day.activities || []).forEach((a) => {
+      const mins = parseTime(a.time);
+      const hours = Math.floor(mins / 60);
+
+      if (hours < 6) {
+        warnings.push(
+          `Day ${day.dayNumber}: "${a.name}" starts very early (${a.time})`
+        );
+      }
+      if (hours > 22) {
+        warnings.push(
+          `Day ${day.dayNumber}: "${a.name}" starts very late (${a.time})`
+        );
+      }
+    });
+  });
+
+  return { passed: true, issues, warnings };
+}
+
+/** Check 8: Missing coordinates */
+function checkCoordinates(itinerary: SimpleItinerary): QACheckResult {
+  const issues: string[] = [];
+  const warnings: string[] = [];
+
+  itinerary.days.forEach((day) => {
+    (day.activities || []).forEach((a) => {
+      if (!a.location?.lat || !a.location?.lng) {
+        issues.push(
+          `Day ${day.dayNumber}: "${a.name}" is missing lat/lng coordinates`
+        );
+      }
+    });
+  });
+
+  return { passed: issues.length === 0, issues, warnings };
+}
+
+/** Check 9: Missing required fields (reservationStatus, priority, info) */
+function checkRequiredFields(itinerary: SimpleItinerary): QACheckResult {
+  const issues: string[] = [];
+  const warnings: string[] = [];
+
+  itinerary.days.forEach((day) => {
+    (day.activities || []).forEach((a) => {
+      if (!a.reservationStatus) {
+        warnings.push(
+          `Day ${day.dayNumber}: "${a.name}" missing reservationStatus`
+        );
+      }
+      if (!a.priority) {
+        warnings.push(
+          `Day ${day.dayNumber}: "${a.name}" missing priority rating`
+        );
+      }
+      if (!a.info) {
+        warnings.push(
+          `Day ${day.dayNumber}: "${a.name}" missing info (opening hours)`
+        );
+      }
+      if (a.priority && a.priority >= 4 && !a.guideNarration) {
+        warnings.push(
+          `Day ${day.dayNumber}: "${a.name}" has priority ${a.priority} but no guideNarration`
+        );
+      }
+    });
+  });
+
+  return { passed: true, issues, warnings };
+}
+
+/** Check 10: Transit info present for non-first activities */
+function checkTransitInfo(itinerary: SimpleItinerary): QACheckResult {
+  const issues: string[] = [];
+  const warnings: string[] = [];
+
+  itinerary.days.forEach((day) => {
+    (day.activities || []).forEach((a, idx) => {
+      if (idx > 0 && !a.transitFromPrev) {
+        warnings.push(
+          `Day ${day.dayNumber}: "${a.name}" missing transitFromPrev`
+        );
+      }
+    });
+  });
+
+  return { passed: true, issues, warnings };
+}
+
+/** Check 11: Cost tracking */
+function checkCosts(itinerary: SimpleItinerary): QACheckResult {
+  const issues: string[] = [];
+  const warnings: string[] = [];
+
   let totalCost = 0;
   let missingCosts = 0;
 
   itinerary.days.forEach((day) => {
-    day.activities?.forEach((activity) => {
-      if (activity.estimatedCost) {
-        totalCost += activity.estimatedCost;
-      } else if (activity.type === 'dining' || activity.type === 'sightseeing') {
+    (day.activities || []).forEach((a) => {
+      const cost = parseCost(a.estimatedCost);
+      if (cost > 0) {
+        totalCost += cost;
+      } else if (a.type === 'attraction' || a.type === 'meal') {
         missingCosts++;
       }
     });
@@ -114,239 +316,133 @@ export function validateItinerary(itinerary: Itinerary): QACheckResult {
 
   if (missingCosts > 0) {
     warnings.push(
-      `${missingCosts} activities missing cost estimates - recommend adding for budget tracking`
+      `${missingCosts} activities missing cost estimates`
     );
   }
 
-  if (totalCost === 0) {
-    warnings.push('No costs estimated in itinerary - add cost data for better planning');
-  }
+  return { passed: true, issues, warnings };
+}
 
-  // Check 8: Variety of activities
-  const activityTypes = new Set<string>();
+/** Check 12: Activity variety */
+function checkVariety(itinerary: SimpleItinerary): QACheckResult {
+  const issues: string[] = [];
+  const warnings: string[] = [];
+
+  const types = new Set<string>();
   itinerary.days.forEach((day) => {
-    day.activities?.forEach((activity) => {
-      activityTypes.add(activity.type);
-    });
+    (day.activities || []).forEach((a) => types.add(a.type));
   });
 
-  if (activityTypes.size < 2) {
-    warnings.push('Low variety of activity types - consider diversifying');
+  if (types.size < 2) {
+    warnings.push('Low variety of activity types — consider diversifying');
   }
 
-  // Check 9: Reasonable daily schedules
-  itinerary.days.forEach((day, dayIdx) => {
-    const activities = day.activities || [];
-    if (activities.length > 8) {
-      warnings.push(
-        `Day ${dayIdx + 1}: Very packed day with ${activities.length} activities`
-      );
-    }
-  });
+  return { passed: true, issues, warnings };
+}
 
-  // Check 10: Verify activity times are within reasonable hours
-  itinerary.days.forEach((day, dayIdx) => {
-    day.activities?.forEach((activity) => {
-      const [hours, minutes] = activity.startTime.split(':').map(Number);
+/** Check 13: Outdoor activities have rainy day alternatives */
+function checkRainyDayAlternatives(itinerary: SimpleItinerary): QACheckResult {
+  const issues: string[] = [];
+  const warnings: string[] = [];
 
-      if (hours < 6) {
+  itinerary.days.forEach((day) => {
+    (day.activities || []).forEach((a) => {
+      if (a.isOutdoor && !a.rainyDayAlternative) {
         warnings.push(
-          `Day ${dayIdx + 1}: "${activity.title}" starts very early (${activity.startTime})`
-        );
-      }
-
-      if (hours > 22) {
-        warnings.push(
-          `Day ${dayIdx + 1}: "${activity.title}" starts very late (${activity.startTime})`
+          `Day ${day.dayNumber}: Outdoor activity "${a.name}" has no rainyDayAlternative`
         );
       }
     });
   });
+
+  return { passed: true, issues, warnings };
+}
+
+/* ── Format helper ──────────────────────────────────────── */
+
+function formatMins(totalMinutes: number): string {
+  const h = Math.floor(totalMinutes / 60) % 24;
+  const m = totalMinutes % 60;
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+}
+
+/* ── Main Entry Points ──────────────────────────────────── */
+
+/**
+ * Run the full QA suite on a SimpleItinerary.
+ * Returns a combined result with all issues and warnings.
+ */
+export function validateItinerary(itinerary: SimpleItinerary): QACheckResult {
+  const checks = [
+    checkEmptyDays,
+    checkMeals,
+    checkScheduleConflicts,
+    checkDurations,
+    checkZigzags,
+    checkPacedDays,
+    checkReasonableHours,
+    checkCoordinates,
+    checkRequiredFields,
+    checkTransitInfo,
+    checkCosts,
+    checkVariety,
+    checkRainyDayAlternatives,
+  ];
+
+  const allIssues: string[] = [];
+  const allWarnings: string[] = [];
+
+  for (const check of checks) {
+    const result = check(itinerary);
+    allIssues.push(...result.issues);
+    allWarnings.push(...result.warnings);
+  }
 
   return {
-    passed: issues.length === 0,
-    issues,
-    warnings,
+    passed: allIssues.length === 0,
+    issues: allIssues,
+    warnings: allWarnings,
   };
 }
 
 /**
- * Check for zigzag patterns in travel
+ * Run full QA with categorized details.
  */
-export function checkForZigzags(activities: Activity[]): string[] {
-  const warnings: string[] = [];
-  const locations: Map<string, number[]> = new Map();
-
-  activities.forEach((activity, idx) => {
-    const loc = activity.location?.name || 'unknown';
-    if (!locations.has(loc)) {
-      locations.set(loc, []);
-    }
-    locations.get(loc)!.push(idx);
-  });
-
-  locations.forEach((indices, location) => {
-    if (indices.length > 1 && !isConsecutive(indices)) {
-      const gaps = indices.slice(0, -1).map((idx, i) => indices[i + 1] - idx - 1);
-      warnings.push(
-        `Zigzagging detected: Return to "${location}" with ${Math.max(...gaps)} activities in between`
-      );
-    }
-  });
-
-  return warnings;
-}
-
-/**
- * Check for missing or inadequate meals
- */
-export function checkMeals(activities: Activity[], mealData: Record<string, string>): string[] {
-  const issues: string[] = [];
-
-  const mealsProvided = Object.values(mealData).filter((m) => m).length;
-  if (mealsProvided === 0) {
-    issues.push('No meals scheduled');
-  } else if (mealsProvided === 1) {
-    issues.push('Only one meal scheduled - travelers need at least breakfast and dinner');
-  }
-
-  return issues;
-}
-
-/**
- * Check for conflicts in activity scheduling
- */
-export function checkScheduleConflicts(activities: Activity[]): string[] {
-  const issues: string[] = [];
-  const sorted = [...activities].sort((a, b) => a.startTime.localeCompare(b.startTime));
-
-  for (let i = 0; i < sorted.length - 1; i++) {
-    const current = sorted[i];
-    const next = sorted[i + 1];
-
-    const currentEndTime = calculateEndTime(current.startTime, current.duration || 0);
-    const nextStartTime = next.startTime;
-
-    if (currentEndTime > nextStartTime) {
-      issues.push(
-        `Conflict: "${current.title}" (ends ${currentEndTime}) overlaps with "${next.title}" (starts ${nextStartTime})`
-      );
-    }
-  }
-
-  return issues;
-}
-
-/**
- * Check for unrealistic travel times between activities
- */
-export function checkTravelFeasibility(
-  activities: Activity[],
-  avgTravelTimeMinutes: number = 30
-): string[] {
-  const warnings: string[] = [];
-  const sorted = [...activities].sort((a, b) => a.startTime.localeCompare(b.startTime));
-
-  for (let i = 0; i < sorted.length - 1; i++) {
-    const current = sorted[i];
-    const next = sorted[i + 1];
-
-    const currentEnd = calculateEndTime(current.startTime, current.duration || 0);
-    const nextStart = next.startTime;
-
-    const [currentEndHours, currentEndMins] = currentEnd.split(':').map(Number);
-    const [nextStartHours, nextStartMins] = nextStart.split(':').map(Number);
-
-    const breakMinutes =
-      (nextStartHours * 60 + nextStartMins) - (currentEndHours * 60 + currentEndMins);
-
-    const currentLoc = current.location?.name || '';
-    const nextLoc = next.location?.name || '';
-
-    if (breakMinutes < avgTravelTimeMinutes && currentLoc !== nextLoc) {
-      warnings.push(
-        `Only ${breakMinutes}min between "${current.title}" and "${next.title}" - may not be enough travel time`
-      );
-    }
-  }
-
-  return warnings;
-}
-
-/**
- * Helper: Check if array indices are consecutive
- */
-function isConsecutive(indices: number[]): boolean {
-  for (let i = 1; i < indices.length; i++) {
-    if (indices[i] !== indices[i - 1] + 1) {
-      return false;
-    }
-  }
-  return true;
-}
-
-/**
- * Helper: Calculate activity end time
- */
-function calculateEndTime(startTime: string, durationMinutes: number): string {
-  const [hours, minutes] = startTime.split(':').map(Number);
-  const totalMinutes = hours * 60 + minutes + durationMinutes;
-  const endHours = Math.floor(totalMinutes / 60) % 24;
-  const endMinutes = totalMinutes % 60;
-
-  return `${String(endHours).padStart(2, '0')}:${String(endMinutes).padStart(2, '0')}`;
-}
-
-/**
- * Run comprehensive QA suite
- */
-export function runFullQA(itinerary: Itinerary): {
+export function runFullQA(itinerary: SimpleItinerary): {
   passed: boolean;
   summary: QACheckResult;
   details: Record<string, string[]>;
 } {
   const details: Record<string, string[]> = {};
+
+  const namedChecks: Array<{ name: string; fn: (it: SimpleItinerary) => QACheckResult }> = [
+    { name: 'Empty Days', fn: checkEmptyDays },
+    { name: 'Meals', fn: checkMeals },
+    { name: 'Schedule Conflicts', fn: checkScheduleConflicts },
+    { name: 'Durations', fn: checkDurations },
+    { name: 'Zigzag Detection', fn: checkZigzags },
+    { name: 'Day Pacing', fn: checkPacedDays },
+    { name: 'Reasonable Hours', fn: checkReasonableHours },
+    { name: 'Coordinates', fn: checkCoordinates },
+    { name: 'Required Fields', fn: checkRequiredFields },
+    { name: 'Transit Info', fn: checkTransitInfo },
+    { name: 'Cost Tracking', fn: checkCosts },
+    { name: 'Activity Variety', fn: checkVariety },
+    { name: 'Rainy Day Alternatives', fn: checkRainyDayAlternatives },
+  ];
+
   const allIssues: string[] = [];
   const allWarnings: string[] = [];
 
-  // Run itinerary validation
-  const itineraryCheck = validateItinerary(itinerary);
-  if (itineraryCheck.issues.length > 0) {
-    details['Itinerary Structure'] = itineraryCheck.issues;
-    allIssues.push(...itineraryCheck.issues);
+  for (const { name, fn } of namedChecks) {
+    const result = fn(itinerary);
+    const combined = [...result.issues, ...result.warnings];
+    if (combined.length > 0) {
+      details[name] = combined;
+    }
+    allIssues.push(...result.issues);
+    allWarnings.push(...result.warnings);
   }
-  if (itineraryCheck.warnings.length > 0) {
-    allWarnings.push(...itineraryCheck.warnings);
-  }
-
-  // Check each day
-  itinerary.days.forEach((day, dayIdx) => {
-    const dayKey = `Day ${dayIdx + 1}`;
-
-    const scheduleConflicts = checkScheduleConflicts(day.activities || []);
-    if (scheduleConflicts.length > 0) {
-      details[`${dayKey} - Scheduling`] = scheduleConflicts;
-      allIssues.push(...scheduleConflicts);
-    }
-
-    const travelIssues = checkTravelFeasibility(day.activities || []);
-    if (travelIssues.length > 0) {
-      details[`${dayKey} - Travel`] = travelIssues;
-      allWarnings.push(...travelIssues);
-    }
-
-    const mealIssues = checkMeals(day.activities || [], day.meals || {});
-    if (mealIssues.length > 0) {
-      details[`${dayKey} - Meals`] = mealIssues;
-      allIssues.push(...mealIssues);
-    }
-
-    const zigzags = checkForZigzags(day.activities || []);
-    if (zigzags.length > 0) {
-      details[`${dayKey} - Route Optimization`] = zigzags;
-      allWarnings.push(...zigzags);
-    }
-  });
 
   return {
     passed: allIssues.length === 0,
