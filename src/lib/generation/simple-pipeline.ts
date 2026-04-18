@@ -42,6 +42,8 @@ export interface ItineraryDay {
   activities: ItineraryActivity[];
   narration?: string;
   dailyBudget?: { activities: number; meals: number; total: number };
+  parkingSuggestion?: string; // e.g. "Garage Ponte Vecchio - €20/day, Via dei Benci 8"
+  segmentLabel?: string;     // e.g. "Rome" or "Tuscany Road Trip" for multi-segment trips
 }
 
 export interface HotelRecommendation {
@@ -146,7 +148,70 @@ function buildTravelerProfileSection(userProfile: any): string {
   return 'Traveler Profile:\n' + parts.join('\n') + '\n\n';
 }
 
+/* ── Segment Type ───────────────────────────────────────── */
+
+export interface TripSegment {
+  type: 'single_city' | 'area' | 'road_trip';
+  destination: string;
+  startDate: string;
+  endDate: string;
+  startPoint?: string;   // road_trip only
+  endPoint?: string;     // road_trip only
+  maxDriveHours?: number; // road_trip only
+}
+
 /* ── Prompt Builder ─────────────────────────────────────── */
+
+function buildCriticalRules(currency: string): string {
+  return `CRITICAL RULES:
+1. EVERY activity MUST have "location" with "lat" and "lng" (decimal degrees). No exceptions.
+2. EVERY activity MUST have "info" with opening hours and closure days. Account for holidays — NEVER schedule on closed days.
+3. EVERY activity MUST have "reservationStatus": "REQUIRED" (must book ahead), "RECOMMENDED" (walk-ins risky), or "WALK_IN_OK".
+4. EVERY activity MUST have "priority": 1-5. Top 2-3 attractions per day get 4-5; meals get 2-3.
+5. Activities with priority >= 4 MUST have "guideNarration": 2-3 sentences of engaging, tour-guide-style narration adapted to the traveler profile.
+6. EVERY activity (except the first of each day) MUST have "transitFromPrev": e.g. "8 min walk", "15 min metro", "~20 min bus".
+7. Outdoor activities MUST have "isOutdoor": true and "rainyDayAlternative": name of a nearby indoor alternative.
+8. REQUIRED/RECOMMENDED items should have "bookingUrl" if known (official site or constructed search URL).
+9. Tips must be ACTIONABLE PRE-VISIT advice. Scheduling and tips must be consistent.
+10. Include "dailyBudget" per day: {"activities": N, "meals": N, "total": N} as numbers in ${currency}.
+11. Include "localFinds": 5-10 local tastings, shops, markets, workshops, or beautiful streets worth exploring.
+12. Include "climateNote": 1 sentence about typical weather for this destination during the trip dates.
+13. For days involving DRIVING to a city/town, include "parkingSuggestion" on the day: name of a convenient parking spot with approximate cost and location.`;
+}
+
+function buildJsonStructure(startDate: string, currency: string): string {
+  return `JSON structure:
+{
+  "summary": "1 sentence",
+  "highlights": ["4 items"],
+  "climateNote": "Weather summary for these dates",
+  "days": [
+    {"dayNumber": 1, "date": "${startDate}", "theme": "short theme", "neighborhood": "area",
+     "dailyBudget": {"activities": 50, "meals": 60, "total": 110},
+     "parkingSuggestion": "Parking Garage Name - €15/day, address (only if driving this day)",
+     "activities": [
+       {"time": "09:00", "name": "Colosseum", "description": "Iconic Roman amphitheatre", "type": "attraction", "duration": "2h",
+        "location": {"name": "Colosseum", "address": "Piazza del Colosseo", "lat": 41.8902, "lng": 12.4922},
+        "info": "Open 9:00-19:00 daily. Last entry 1h before.", "tips": "Book at coopculture.it to skip queue",
+        "estimatedCost": "€16", "reservationStatus": "REQUIRED", "priority": 5, "bookingUrl": "https://www.coopculture.it",
+        "guideNarration": "Step through the same arches gladiators used 2000 years ago. This 50,000-seat arena hosted spectacles from dawn to dusk.",
+        "isOutdoor": true, "rainyDayAlternative": "Palazzo Doria Pamphilj"},
+       {"time": "12:00", "name": "Roscioli", "description": "Famous Roman pasta", "type": "meal", "duration": "1h",
+        "location": {"name": "Roscioli", "address": "Via dei Giubbonari 21", "lat": 41.8955, "lng": 12.4730},
+        "info": "Lunch 12:30-14:30, Dinner 19:00-23:00. Closed Sun.", "tips": "Reserve 2 days ahead",
+        "estimatedCost": "€25", "reservationStatus": "RECOMMENDED", "priority": 3, "transitFromPrev": "12 min walk"}
+     ],
+     "narration": "1 short sentence about the day"
+    }
+  ],
+  "hotelRecommendations": [{"name": "Hotel Eden", "area": "Via Veneto", "priceRange": "€200-350", "why": "brief reason", "starRating": 5, "bookingUrl": "https://booking.com/search?ss=Hotel+Eden+Rome"}],
+  "budgetEstimate": {"perDay": "${currency === 'EUR' ? '€' : '$'}X", "total": "${currency === 'EUR' ? '€' : '$'}Y", "breakdown": "summary", "activitiesTotal": 200, "mealsTotal": 300, "hotelsTotal": 1000},
+  "practicalTips": ["3-4 tips"],
+  "localFinds": [{"name": "Supplizio", "type": "tasting", "description": "Best supplì in Rome", "location": {"name": "Supplizio", "lat": 41.8986, "lng": 12.4733}, "estimatedCost": "€5"}]
+}
+
+5 activities per day. 2 hotel options. Keep strings SHORT. Every field listed above is REQUIRED — omitting any field is invalid.`;
+}
 
 function buildPrompt(trip: any, userProfile?: any): string {
   const profile = trip.profile || {};
@@ -161,6 +226,7 @@ function buildPrompt(trip: any, userProfile?: any): string {
   );
   const days = nights + 1;
   const tripType = trip.trip_type || 'single_city';
+  const currency = trip.currency || 'EUR';
 
   const travelerProfileSection = buildTravelerProfileSection(userProfile);
 
@@ -179,59 +245,155 @@ function buildPrompt(trip: any, userProfile?: any): string {
 
   return `Create a ${days}-day itinerary for ${trip.destination} (${trip.start_date} to ${trip.end_date}).
 Travelers: ${profile.travelers || 2} · Type: ${profile.tripType || 'cultural'} · Hotel: ${prefs.hotelPreference || 'comfort'}
-Interests: ${interests} · Avoid: ${dislikes} · Currency: ${trip.currency || 'EUR'}
+Interests: ${interests} · Avoid: ${dislikes} · Currency: ${currency}
 ${tripContext ? '\n' + tripContext + '\n' : ''}
 ${travelerProfileSection}Use this detailed traveler profile to tailor venue choices, pacing, dining recommendations, and activity intensity.
 
 Real venue names, geographic clustering. Concise descriptions (1 sentence max). Return ONLY valid JSON (no markdown).
 
-CRITICAL RULES:
-1. EVERY activity MUST have "location" with "lat" and "lng" (decimal degrees). No exceptions.
-2. EVERY activity MUST have "info" with opening hours and closure days. Account for holidays — NEVER schedule on closed days.
-3. EVERY activity MUST have "reservationStatus": "REQUIRED" (must book ahead), "RECOMMENDED" (walk-ins risky), or "WALK_IN_OK".
-4. EVERY activity MUST have "priority": 1-5. Top 2-3 attractions per day get 4-5; meals get 2-3.
-5. Activities with priority >= 4 MUST have "guideNarration": 2-3 sentences of engaging, tour-guide-style narration adapted to the traveler profile.
-6. EVERY activity (except the first of each day) MUST have "transitFromPrev": e.g. "8 min walk", "15 min metro", "~20 min bus".
-7. Outdoor activities MUST have "isOutdoor": true and "rainyDayAlternative": name of a nearby indoor alternative.
-8. REQUIRED/RECOMMENDED items should have "bookingUrl" if known (official site or constructed search URL).
-9. Tips must be ACTIONABLE PRE-VISIT advice. Scheduling and tips must be consistent.
-10. Include "dailyBudget" per day: {"activities": N, "meals": N, "total": N} as numbers in ${trip.currency || 'EUR'}.
-11. Include "localFinds": 5-10 local tastings, shops, markets, workshops, or beautiful streets worth exploring.
-12. Include "climateNote": 1 sentence about typical weather for this destination during the trip dates.
+${buildCriticalRules(currency)}
 
-JSON structure:
-{
-  "summary": "1 sentence",
-  "highlights": ["4 items"],
-  "climateNote": "Weather summary for these dates",
-  "days": [
-    {"dayNumber": 1, "date": "${trip.start_date}", "theme": "short theme", "neighborhood": "area",
-     "dailyBudget": {"activities": 50, "meals": 60, "total": 110},
-     "activities": [
-       {"time": "09:00", "name": "Colosseum", "description": "Iconic Roman amphitheatre", "type": "attraction", "duration": "2h",
-        "location": {"name": "Colosseum", "address": "Piazza del Colosseo", "lat": 41.8902, "lng": 12.4922},
-        "info": "Open 9:00-19:00 daily. Last entry 1h before.", "tips": "Book at coopculture.it to skip queue",
-        "estimatedCost": "€16", "reservationStatus": "REQUIRED", "priority": 5, "bookingUrl": "https://www.coopculture.it",
-        "guideNarration": "Step through the same arches gladiators used 2000 years ago. This 50,000-seat arena hosted spectacles from dawn to dusk.",
-        "isOutdoor": true, "rainyDayAlternative": "Palazzo Doria Pamphilj"},
-       {"time": "12:00", "name": "Roscioli", "description": "Famous Roman pasta", "type": "meal", "duration": "1h",
-        "location": {"name": "Roscioli", "address": "Via dei Giubbonari 21", "lat": 41.8955, "lng": 12.4730},
-        "info": "Lunch 12:30-14:30, Dinner 19:00-23:00. Closed Sun.", "tips": "Reserve 2 days ahead",
-        "estimatedCost": "€25", "reservationStatus": "RECOMMENDED", "priority": 3, "transitFromPrev": "12 min walk"}
-     ],
-     "narration": "1 short sentence about the day"
-    }
-  ],
-  "hotelRecommendations": [{"name": "Hotel Eden", "area": "Via Veneto", "priceRange": "€200-350", "why": "brief reason", "starRating": 5, "bookingUrl": "https://booking.com/search?ss=Hotel+Eden+Rome"}],
-  "budgetEstimate": {"perDay": "€X", "total": "€Y", "breakdown": "summary", "activitiesTotal": 200, "mealsTotal": 300, "hotelsTotal": 1000},
-  "practicalTips": ["3-4 tips"],
-  "localFinds": [{"name": "Supplizio", "type": "tasting", "description": "Best supplì in Rome", "location": {"name": "Supplizio", "lat": 41.8986, "lng": 12.4733}, "estimatedCost": "€5"}]
+${buildJsonStructure(trip.start_date, currency)}`;
 }
 
-5 activities per day. 2 hotel options. Keep strings SHORT. Every field listed above is REQUIRED — omitting any field is invalid.`;
+/** Build a prompt for a single segment within a multi-segment trip */
+function buildSegmentPrompt(
+  segment: TripSegment,
+  segIdx: number,
+  totalSegments: number,
+  dayOffset: number,
+  trip: any,
+  userProfile?: any
+): string {
+  const profile = trip.profile || {};
+  const prefs = profile.preferences || {};
+  const interests = (prefs.interests || []).join(', ') || 'general sightseeing';
+  const dislikes = (prefs.dislikes || []).join(', ') || 'none';
+  const currency = trip.currency || 'EUR';
+  const nights = Math.max(
+    1,
+    Math.ceil(
+      (new Date(segment.endDate).getTime() - new Date(segment.startDate).getTime()) / (1000 * 60 * 60 * 24)
+    )
+  );
+  const days = nights + 1;
+  const travelerProfileSection = buildTravelerProfileSection(userProfile);
+
+  let segContext = '';
+  if (segment.type === 'area') {
+    segContext = `This segment is an AREA trip across ${segment.destination}. Propose 2-3 overnight bases with drive times between them. Cluster each day around the base where you sleep that night.`;
+  } else if (segment.type === 'road_trip') {
+    const start = segment.startPoint || segment.destination;
+    const end = segment.endPoint || segment.destination;
+    const maxDrive = segment.maxDriveHours || 4;
+    segContext = `This segment is a ROAD TRIP from ${start} to ${end}. Max ${maxDrive} driving hours/day. Plan daily legs with scenic stops en route.`;
+  } else {
+    segContext = `This segment is a SINGLE CITY stay in ${segment.destination}.`;
+  }
+
+  return `Create a ${days}-day itinerary for SEGMENT ${segIdx + 1}/${totalSegments}: ${segment.destination} (${segment.startDate} to ${segment.endDate}).
+Travelers: ${profile.travelers || 2} · Type: ${profile.tripType || 'cultural'} · Hotel: ${prefs.hotelPreference || 'comfort'}
+Interests: ${interests} · Avoid: ${dislikes} · Currency: ${currency}
+
+${segContext}
+
+IMPORTANT: Day numbers start at ${dayOffset + 1} (continuing from previous segments).
+
+${travelerProfileSection}Use this detailed traveler profile to tailor venue choices, pacing, dining recommendations, and activity intensity.
+
+Real venue names, geographic clustering. Concise descriptions (1 sentence max). Return ONLY valid JSON (no markdown).
+
+${buildCriticalRules(currency)}
+
+${buildJsonStructure(segment.startDate, currency)}`;
 }
 
 /* ── Generation Function ────────────────────────────────── */
+
+/** Generate a single-segment (standard) itinerary */
+async function generateSingleItinerary(trip: any, userProfile: any): Promise<SimpleItinerary> {
+  const prompt = buildPrompt(trip, userProfile);
+  return callClaudeJSON<SimpleItinerary>(prompt, {
+    maxTokens: 12000,
+    temperature: 0.5,
+  });
+}
+
+/** Generate a multi-segment itinerary by calling Claude once per segment */
+async function generateMultiSegmentItinerary(
+  segments: TripSegment[],
+  trip: any,
+  userProfile: any
+): Promise<SimpleItinerary> {
+  let dayOffset = 0;
+  const allDays: ItineraryDay[] = [];
+  const allHighlights: string[] = [];
+  const allTips: string[] = [];
+  const allLocalFinds: LocalFind[] = [];
+  const allHotels: HotelRecommendation[] = [];
+  const climateNotes: string[] = [];
+  let totalActivities = 0;
+  let totalMeals = 0;
+  let totalHotels = 0;
+
+  for (let i = 0; i < segments.length; i++) {
+    const seg = segments[i];
+    const prompt = buildSegmentPrompt(seg, i, segments.length, dayOffset, trip, userProfile);
+
+    console.log(`[Multi-Segment] Generating segment ${i + 1}/${segments.length}: ${seg.destination} (${seg.type})`);
+
+    const segResult = await callClaudeJSON<SimpleItinerary>(prompt, {
+      maxTokens: 12000,
+      temperature: 0.5,
+    });
+
+    // Label each day with the segment name and renumber
+    const segLabel = seg.type === 'road_trip'
+      ? `${seg.startPoint} → ${seg.endPoint}`
+      : seg.destination;
+
+    for (const day of segResult.days) {
+      day.dayNumber = dayOffset + day.dayNumber;
+      day.segmentLabel = segLabel;
+      allDays.push(day);
+    }
+
+    dayOffset += segResult.days.length;
+
+    if (segResult.highlights) allHighlights.push(...segResult.highlights);
+    if (segResult.practicalTips) allTips.push(...segResult.practicalTips);
+    if (segResult.localFinds) allLocalFinds.push(...segResult.localFinds);
+    if (segResult.hotelRecommendations) allHotels.push(...segResult.hotelRecommendations);
+    if (segResult.climateNote) climateNotes.push(segResult.climateNote);
+    if (segResult.budgetEstimate) {
+      totalActivities += segResult.budgetEstimate.activitiesTotal || 0;
+      totalMeals += segResult.budgetEstimate.mealsTotal || 0;
+      totalHotels += segResult.budgetEstimate.hotelsTotal || 0;
+    }
+  }
+
+  const currency = trip.currency || 'EUR';
+  const sym = currency === 'EUR' ? '€' : '$';
+  const grandTotal = totalActivities + totalMeals + totalHotels;
+
+  return {
+    summary: `Multi-segment trip: ${segments.map(s => s.destination).join(' → ')}`,
+    highlights: allHighlights.slice(0, 8),
+    climateNote: climateNotes.join(' | '),
+    days: allDays,
+    hotelRecommendations: allHotels,
+    budgetEstimate: {
+      perDay: `${sym}${allDays.length > 0 ? Math.round(grandTotal / allDays.length) : 0}`,
+      total: `${sym}${grandTotal}`,
+      breakdown: `${segments.length} segments: ${segments.map(s => s.destination).join(', ')}`,
+      activitiesTotal: totalActivities,
+      mealsTotal: totalMeals,
+      hotelsTotal: totalHotels,
+    },
+    practicalTips: allTips.slice(0, 8),
+    localFinds: allLocalFinds.slice(0, 15),
+  };
+}
 
 export async function generateTripItinerary(tripId: string): Promise<SimpleItinerary> {
   // Fetch trip
@@ -260,11 +422,15 @@ export async function generateTripItinerary(tripId: string): Promise<SimpleItine
 
     const userProfile = profileRow?.profile || {};
 
-    const prompt = buildPrompt(trip, userProfile);
-    const itinerary = await callClaudeJSON<SimpleItinerary>(prompt, {
-      maxTokens: 12000,
-      temperature: 0.5,
-    });
+    // Check if this is a multi-segment trip
+    const segments: TripSegment[] | undefined = trip.trip_overrides?.segments;
+    let itinerary: SimpleItinerary;
+
+    if (segments && segments.length > 1) {
+      itinerary = await generateMultiSegmentItinerary(segments, trip, userProfile);
+    } else {
+      itinerary = await generateSingleItinerary(trip, userProfile);
+    }
 
     // Run QA validation
     const qa = validateItinerary(itinerary);

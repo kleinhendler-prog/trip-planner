@@ -56,6 +56,8 @@ interface Day {
   activities: Activity[];
   narration?: string;
   dailyBudget?: DayBudget;
+  parkingSuggestion?: string;
+  segmentLabel?: string;
 }
 
 interface HotelRec {
@@ -155,6 +157,17 @@ export default function TripViewPage() {
     suggestion: Activity & { whySuggested?: string };
     attempt: number;
   } | null>(null);
+
+  // What's Nearby state
+  const [nearbyLoading, setNearbyLoading] = useState<string | null>(null);
+  const [nearbySuggestions, setNearbySuggestions] = useState<{
+    dayIndex: number;
+    activityIndex: number;
+    suggestions: Array<{ name: string; type: string; description: string; distance: string; estimatedCost?: string; whyRelevant: string; location?: { lat: number; lng: number } }>;
+  } | null>(null);
+
+  // Day reorder state
+  const [reorderLoading, setReorderLoading] = useState(false);
 
   const fetchTrip = useCallback(async () => {
     try {
@@ -282,6 +295,44 @@ export default function TripViewPage() {
       altSuggestion.activityIndex,
       altSuggestion.attempt + 1
     );
+  };
+
+  /* ── What's Nearby Handlers ──────────────────────────── */
+
+  const requestNearby = async (dayIdx: number, actIdx: number) => {
+    const key = `${dayIdx}-${actIdx}`;
+    setNearbyLoading(key);
+    setNearbySuggestions(null);
+    try {
+      const res = await apiClient.post<{
+        suggestions: Array<{ name: string; type: string; description: string; distance: string; estimatedCost?: string; whyRelevant: string; location?: { lat: number; lng: number } }>;
+      }>(`/trips/${tripId}/nearby`, { day_index: dayIdx, activity_index: actIdx });
+      if (res.success && res.data) {
+        setNearbySuggestions({ dayIndex: dayIdx, activityIndex: actIdx, suggestions: res.data.suggestions });
+      }
+    } catch { /* ignore */ }
+    setNearbyLoading(null);
+  };
+
+  /* ── Day Reorder Handlers ──────────────────────────────── */
+
+  const moveDay = async (fromIdx: number, toIdx: number) => {
+    if (!trip?.itinerary?.days) return;
+    if (toIdx < 0 || toIdx >= trip.itinerary.days.length) return;
+    setReorderLoading(true);
+    try {
+      const res = await apiClient.put<{ success: boolean; warnings: string[] }>(`/trips/${tripId}/reorder-days`, {
+        from_index: fromIdx,
+        to_index: toIdx,
+      });
+      if (res.success && res.data) {
+        if (res.data.warnings && res.data.warnings.length > 0) {
+          alert('Reorder done, but note:\n\n' + res.data.warnings.join('\n'));
+        }
+        await fetchTrip();
+      }
+    } catch { /* ignore */ }
+    setReorderLoading(false);
   };
 
   /* ── Loading / Error / Generating States ──────────────── */
@@ -588,14 +639,48 @@ export default function TripViewPage() {
                           </CardDescription>
                         </div>
                       </div>
-                      <span className="text-gray-400">{expanded ? '\u25B2' : '\u25BC'}</span>
+                      <div className="flex items-center gap-1">
+                        {/* Day reorder arrows */}
+                        <button
+                          className="p-1 text-gray-400 hover:text-gray-700 disabled:opacity-30"
+                          disabled={reorderLoading || itin.days.indexOf(day) === 0}
+                          onClick={(e) => { e.stopPropagation(); moveDay(itin.days.indexOf(day), itin.days.indexOf(day) - 1); }}
+                          title="Move day up"
+                        >
+                          &#x25B2;
+                        </button>
+                        <button
+                          className="p-1 text-gray-400 hover:text-gray-700 disabled:opacity-30"
+                          disabled={reorderLoading || itin.days.indexOf(day) === itin.days.length - 1}
+                          onClick={(e) => { e.stopPropagation(); moveDay(itin.days.indexOf(day), itin.days.indexOf(day) + 1); }}
+                          title="Move day down"
+                        >
+                          &#x25BC;
+                        </button>
+                        <span className="text-gray-400 ml-1">{expanded ? '\u25B2' : '\u25BC'}</span>
+                      </div>
                     </div>
                   </CardHeader>
                 </button>
                 {expanded && (
                   <CardContent className="space-y-3">
+                    {/* Segment label for multi-segment trips */}
+                    {day.segmentLabel && (
+                      <div className="flex items-center gap-2 mb-1">
+                        <Badge variant="outline" className="text-xs">&#x1F517; {day.segmentLabel}</Badge>
+                      </div>
+                    )}
+
                     {day.narration && (
                       <p className="text-gray-600 italic border-l-4 border-blue-200 pl-3 py-1">{day.narration}</p>
+                    )}
+
+                    {/* Parking suggestion */}
+                    {day.parkingSuggestion && (
+                      <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded p-2">
+                        <span className="text-lg">&#x1F17F;&#xFE0F;</span>
+                        <p className="text-sm text-amber-800">{day.parkingSuggestion}</p>
+                      </div>
                     )}
 
                     {/* Daily budget breakdown */}
@@ -716,6 +801,21 @@ export default function TripViewPage() {
                                     ) : '&#x1F504; '}
                                     Suggest Alternative
                                   </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="text-xs h-7 text-teal-600 border-teal-200"
+                                    disabled={nearbyLoading === `${itin.days.indexOf(day)}-${i}`}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      requestNearby(itin.days.indexOf(day), i);
+                                    }}
+                                  >
+                                    {nearbyLoading === `${itin.days.indexOf(day)}-${i}` ? (
+                                      <span className="animate-spin inline-block mr-1">&#x21BB;</span>
+                                    ) : '&#x1F4CD; '}
+                                    What&apos;s Nearby
+                                  </Button>
                                 </div>
 
                                 {/* Suggestion Panel (inline) */}
@@ -780,6 +880,46 @@ export default function TripViewPage() {
                                         </Button>
                                       )}
                                     </div>
+                                  </div>
+                                )}
+
+                                {/* What's Nearby Panel */}
+                                {nearbySuggestions &&
+                                  nearbySuggestions.dayIndex === itin.days.indexOf(day) &&
+                                  nearbySuggestions.activityIndex === i && (
+                                  <div className="mt-3 p-3 rounded-lg border-2 border-teal-300 bg-teal-50 space-y-2">
+                                    <div className="flex items-center justify-between">
+                                      <h4 className="font-semibold text-teal-800 text-sm">
+                                        &#x1F4CD; What&apos;s Nearby
+                                      </h4>
+                                      <button
+                                        onClick={(e) => { e.stopPropagation(); setNearbySuggestions(null); }}
+                                        className="text-teal-500 text-xs hover:underline"
+                                      >
+                                        Dismiss
+                                      </button>
+                                    </div>
+                                    {nearbySuggestions.suggestions.map((ns, ni) => (
+                                      <div key={ni} className="bg-white rounded p-2 border flex items-start gap-2">
+                                        <span className="text-lg mt-0.5">
+                                          {ns.type === 'cafe' ? '\u2615' : ns.type === 'shop' ? '\u{1F6CD}\uFE0F' : ns.type === 'viewpoint' ? '\u{1F304}' : ns.type === 'gallery' ? '\u{1F3A8}' : ns.type === 'park' ? '\u{1F333}' : ns.type === 'market' ? '\u{1F3EA}' : '\u{1F4CD}'}
+                                        </span>
+                                        <div className="flex-1 min-w-0">
+                                          <div className="flex items-baseline gap-2 flex-wrap">
+                                            <span className="font-medium text-sm">{ns.name}</span>
+                                            <span className="text-xs text-gray-500">{ns.distance}</span>
+                                            {ns.estimatedCost && <Badge variant="secondary" className="text-xs">{ns.estimatedCost}</Badge>}
+                                          </div>
+                                          <p className="text-xs text-gray-700">{ns.description}</p>
+                                          <p className="text-xs text-teal-700 italic mt-0.5">{ns.whyRelevant}</p>
+                                          {ns.location?.lat && ns.location?.lng && (
+                                            <a href={`https://www.google.com/maps/search/?api=1&query=${ns.location.lat},${ns.location.lng}`} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline">
+                                              View on map &#x2197;
+                                            </a>
+                                          )}
+                                        </div>
+                                      </div>
+                                    ))}
                                   </div>
                                 )}
                               </div>

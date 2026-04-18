@@ -43,7 +43,18 @@ const STEPS = [
   { id: 5, title: 'Review & Generate' },
 ];
 
-type TripStyle = 'single_city' | 'area' | 'road_trip';
+type TripStyle = 'single_city' | 'area' | 'road_trip' | 'multi_segment';
+
+interface Segment {
+  id: string;
+  type: 'single_city' | 'area' | 'road_trip';
+  destination: string;
+  startPoint: string;
+  endPoint: string;
+  maxDriveHours: number;
+  startDate: string;
+  endDate: string;
+}
 
 interface FormData {
   tripStyle: TripStyle;
@@ -63,6 +74,22 @@ interface FormData {
   tripType: TripType;
   currency: 'EUR' | 'USD';
   dailyBudget?: number;
+  segments: Segment[];
+}
+
+let segmentCounter = 0;
+function newSegment(startDate?: string): Segment {
+  segmentCounter++;
+  return {
+    id: `seg-${segmentCounter}`,
+    type: 'single_city',
+    destination: '',
+    startPoint: '',
+    endPoint: '',
+    maxDriveHours: 4,
+    startDate: startDate || '',
+    endDate: '',
+  };
 }
 
 export default function TripCreationPage() {
@@ -85,6 +112,7 @@ export default function TripCreationPage() {
     hotelPreference: 'comfort',
     tripType: 'cultural',
     currency: 'USD',
+    segments: [],
   });
 
   const [isGenerating, setIsGenerating] = useState(false);
@@ -104,16 +132,35 @@ export default function TripCreationPage() {
     const newErrors: Record<string, string> = {};
 
     if (step === 1) {
-      if (formData.tripStyle === 'road_trip') {
+      if (formData.tripStyle === 'multi_segment') {
+        if (formData.segments.length < 2) {
+          newErrors.segments = 'Add at least 2 segments for a multi-segment trip';
+        } else {
+          formData.segments.forEach((seg, i) => {
+            if (seg.type === 'road_trip') {
+              if (!seg.startPoint) newErrors[`seg${i}start`] = `Segment ${i + 1}: starting point required`;
+              if (!seg.endPoint) newErrors[`seg${i}end`] = `Segment ${i + 1}: ending point required`;
+            } else {
+              if (!seg.destination) newErrors[`seg${i}dest`] = `Segment ${i + 1}: destination required`;
+            }
+            if (!seg.startDate) newErrors[`seg${i}sdate`] = `Segment ${i + 1}: start date required`;
+            if (!seg.endDate) newErrors[`seg${i}edate`] = `Segment ${i + 1}: end date required`;
+          });
+        }
+      } else if (formData.tripStyle === 'road_trip') {
         if (!formData.startPoint) newErrors.startPoint = 'Starting point is required';
         if (!formData.endPoint) newErrors.endPoint = 'Destination is required';
+        if (!formData.startDate) newErrors.startDate = 'Start date is required';
+        if (!formData.endDate) newErrors.endDate = 'End date is required';
       } else {
         if (!formData.destination) newErrors.destination = 'Destination is required';
+        if (!formData.startDate) newErrors.startDate = 'Start date is required';
+        if (!formData.endDate) newErrors.endDate = 'End date is required';
       }
-      if (!formData.startDate) newErrors.startDate = 'Start date is required';
-      if (!formData.endDate) newErrors.endDate = 'End date is required';
-      if (formData.startDate && formData.endDate && formData.startDate >= formData.endDate) {
-        newErrors.endDate = 'End date must be after start date';
+      if (formData.tripStyle !== 'multi_segment') {
+        if (formData.startDate && formData.endDate && formData.startDate >= formData.endDate) {
+          newErrors.endDate = 'End date must be after start date';
+        }
       }
     }
 
@@ -150,27 +197,47 @@ export default function TripCreationPage() {
     setGenerationProgress({ status: 'pending', progress: 0, jobId: '' });
 
     try {
-      // Create trip first
-      const destinationForTrip =
-        formData.tripStyle === 'road_trip'
-          ? `${formData.startPoint} → ${formData.endPoint}`
-          : formData.destination;
-
+      // Build trip data based on style
+      let destinationForTrip: string;
+      let startDate: string;
+      let endDate: string;
       const tripOverrides: any = {};
-      if (formData.tripStyle === 'road_trip') {
+
+      if (formData.tripStyle === 'multi_segment') {
+        const segs = formData.segments;
+        destinationForTrip = segs.map(s => s.type === 'road_trip' ? `${s.startPoint} → ${s.endPoint}` : s.destination).join(' → ');
+        startDate = segs[0].startDate;
+        endDate = segs[segs.length - 1].endDate;
+        tripOverrides.segments = segs.map(s => ({
+          type: s.type,
+          destination: s.type === 'road_trip' ? `${s.startPoint} → ${s.endPoint}` : s.destination,
+          startDate: s.startDate,
+          endDate: s.endDate,
+          startPoint: s.startPoint,
+          endPoint: s.endPoint,
+          maxDriveHours: s.maxDriveHours,
+        }));
+      } else if (formData.tripStyle === 'road_trip') {
+        destinationForTrip = `${formData.startPoint} → ${formData.endPoint}`;
+        startDate = formData.startDate;
+        endDate = formData.endDate;
         tripOverrides.startPoint = formData.startPoint;
         tripOverrides.endPoint = formData.endPoint;
         tripOverrides.maxDriveHours = formData.maxDriveHours;
+      } else {
+        destinationForTrip = formData.destination;
+        startDate = formData.startDate;
+        endDate = formData.endDate;
       }
 
       const createResponse = await apiClient.post<Trip>('/trips', {
         title: `Trip to ${destinationForTrip}`,
         destination: destinationForTrip,
-        startDate: formData.startDate,
-        endDate: formData.endDate,
+        startDate,
+        endDate,
         travelers: formData.adultsCount + formData.childrenAges.length,
         tripType: formData.tripType,
-        tripStyle: formData.tripStyle,
+        tripStyle: formData.tripStyle === 'multi_segment' ? 'multi_segment' : formData.tripStyle,
         tripOverrides,
         preferences: {
           interests: formData.interests,
@@ -244,16 +311,23 @@ export default function TripCreationPage() {
                     <label className="block text-sm font-medium text-gray-900 mb-2">
                       What kind of trip is this?
                     </label>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                       {[
-                        { v: 'single_city' as const, emoji: '🏙️', label: 'Single city', desc: 'Stay in one place and explore' },
-                        { v: 'area' as const, emoji: '🗺️', label: 'Region / area', desc: 'e.g., Tuscany, Provence, Scotland' },
-                        { v: 'road_trip' as const, emoji: '🚗', label: 'Road trip', desc: 'Drive from A to B with stops' },
+                        { v: 'single_city' as const, emoji: '🏙️', label: 'Single city', desc: 'Stay in one place' },
+                        { v: 'area' as const, emoji: '🗺️', label: 'Region / area', desc: 'e.g., Tuscany' },
+                        { v: 'road_trip' as const, emoji: '🚗', label: 'Road trip', desc: 'Drive A to B' },
+                        { v: 'multi_segment' as const, emoji: '🔗', label: 'Multi-segment', desc: 'Chain trip types' },
                       ].map((opt) => (
                         <button
                           key={opt.v}
                           type="button"
-                          onClick={() => setFormData({ ...formData, tripStyle: opt.v })}
+                          onClick={() => {
+                            const update: Partial<FormData> = { tripStyle: opt.v };
+                            if (opt.v === 'multi_segment' && formData.segments.length === 0) {
+                              update.segments = [newSegment(), newSegment()];
+                            }
+                            setFormData({ ...formData, ...update });
+                          }}
                           className={`p-3 rounded-lg border-2 text-left transition-all ${
                             formData.tripStyle === opt.v
                               ? 'border-blue-500 bg-blue-50'
@@ -330,21 +404,155 @@ export default function TripCreationPage() {
                     </>
                   )}
 
-                  <DatePicker
-                    label="Start Date"
-                    value={formData.startDate}
-                    onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-                    minDate={new Date().toISOString().split('T')[0]}
-                    error={!!errors.startDate}
-                  />
+                  {/* Multi-segment builder */}
+                  {formData.tripStyle === 'multi_segment' && (
+                    <div className="space-y-4">
+                      <p className="text-sm text-gray-600">
+                        Chain multiple trip types together. Example: 3 days in Rome → road trip to Tuscany → 4 days exploring Tuscany.
+                      </p>
 
-                  <DatePicker
-                    label="End Date"
-                    value={formData.endDate}
-                    onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
-                    minDate={formData.startDate || new Date().toISOString().split('T')[0]}
-                    error={!!errors.endDate}
-                  />
+                      {formData.segments.map((seg, si) => {
+                        const updateSeg = (patch: Partial<Segment>) => {
+                          const newSegs = [...formData.segments];
+                          newSegs[si] = { ...newSegs[si], ...patch };
+                          setFormData({ ...formData, segments: newSegs });
+                        };
+                        return (
+                          <div key={seg.id} className="p-4 border-2 border-gray-200 rounded-lg space-y-3 relative">
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-sm font-bold text-gray-700">Segment {si + 1}</span>
+                              {formData.segments.length > 1 && (
+                                <button
+                                  type="button"
+                                  onClick={() => setFormData({ ...formData, segments: formData.segments.filter((_, i) => i !== si) })}
+                                  className="text-red-500 text-xs hover:underline"
+                                >
+                                  Remove
+                                </button>
+                              )}
+                            </div>
+                            {/* Segment type */}
+                            <div className="grid grid-cols-3 gap-1">
+                              {[
+                                { v: 'single_city' as const, label: '🏙️ City' },
+                                { v: 'area' as const, label: '🗺️ Area' },
+                                { v: 'road_trip' as const, label: '🚗 Road trip' },
+                              ].map((opt) => (
+                                <button
+                                  key={opt.v}
+                                  type="button"
+                                  onClick={() => updateSeg({ type: opt.v })}
+                                  className={`py-1.5 px-2 rounded text-xs font-medium border transition-all ${
+                                    seg.type === opt.v ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 hover:border-gray-300'
+                                  }`}
+                                >
+                                  {opt.label}
+                                </button>
+                              ))}
+                            </div>
+                            {/* Segment destination */}
+                            {seg.type === 'road_trip' ? (
+                              <div className="grid grid-cols-2 gap-2">
+                                <Input
+                                  label="From"
+                                  placeholder="Start city"
+                                  value={seg.startPoint}
+                                  onChange={(e) => updateSeg({ startPoint: e.target.value, destination: e.target.value })}
+                                  error={!!errors[`seg${si}start`]}
+                                />
+                                <Input
+                                  label="To"
+                                  placeholder="End city"
+                                  value={seg.endPoint}
+                                  onChange={(e) => updateSeg({ endPoint: e.target.value })}
+                                  error={!!errors[`seg${si}end`]}
+                                />
+                              </div>
+                            ) : (
+                              <Input
+                                label={seg.type === 'area' ? 'Region' : 'City'}
+                                placeholder={seg.type === 'area' ? 'e.g., Tuscany' : 'e.g., Rome'}
+                                value={seg.destination}
+                                onChange={(e) => updateSeg({ destination: e.target.value })}
+                                error={!!errors[`seg${si}dest`]}
+                              />
+                            )}
+                            {/* Segment dates */}
+                            <div className="grid grid-cols-2 gap-2">
+                              <DatePicker
+                                label="Start"
+                                value={seg.startDate}
+                                onChange={(e) => updateSeg({ startDate: e.target.value })}
+                                minDate={si > 0 ? formData.segments[si - 1].endDate || new Date().toISOString().split('T')[0] : new Date().toISOString().split('T')[0]}
+                                error={!!errors[`seg${si}sdate`]}
+                              />
+                              <DatePicker
+                                label="End"
+                                value={seg.endDate}
+                                onChange={(e) => updateSeg({ endDate: e.target.value })}
+                                minDate={seg.startDate || new Date().toISOString().split('T')[0]}
+                                error={!!errors[`seg${si}edate`]}
+                              />
+                            </div>
+                            {seg.type === 'road_trip' && (
+                              <div>
+                                <label className="block text-xs font-medium text-gray-700 mb-1">
+                                  Max driving/day: {seg.maxDriveHours}h
+                                </label>
+                                <input
+                                  type="range"
+                                  min={2} max={10} step={1}
+                                  value={seg.maxDriveHours}
+                                  onChange={(e) => updateSeg({ maxDriveHours: parseInt(e.target.value) })}
+                                  className="w-full"
+                                />
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          const lastSeg = formData.segments[formData.segments.length - 1];
+                          setFormData({
+                            ...formData,
+                            segments: [...formData.segments, newSegment(lastSeg?.endDate)],
+                          });
+                        }}
+                        className="w-full"
+                      >
+                        + Add Segment
+                      </Button>
+
+                      {errors.segments && <p className="text-sm text-red-600">{errors.segments}</p>}
+                      {Object.entries(errors).filter(([k]) => k.startsWith('seg')).map(([k, v]) => (
+                        <p key={k} className="text-sm text-red-600">{v}</p>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Dates (non-multi-segment only) */}
+                  {formData.tripStyle !== 'multi_segment' && (
+                    <>
+                      <DatePicker
+                        label="Start Date"
+                        value={formData.startDate}
+                        onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+                        minDate={new Date().toISOString().split('T')[0]}
+                        error={!!errors.startDate}
+                      />
+                      <DatePicker
+                        label="End Date"
+                        value={formData.endDate}
+                        onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+                        minDate={formData.startDate || new Date().toISOString().split('T')[0]}
+                        error={!!errors.endDate}
+                      />
+                    </>
+                  )}
 
                   {errors.destination && <p className="text-sm text-red-600">{errors.destination}</p>}
                   {errors.startPoint && <p className="text-sm text-red-600">{errors.startPoint}</p>}
@@ -572,16 +780,35 @@ export default function TripCreationPage() {
                   <div className="grid gap-4 rounded-lg bg-gray-50 p-4">
                     <div>
                       <p className="text-xs font-semibold text-gray-600">DESTINATION</p>
-                      <p className="text-lg font-medium text-gray-900">{formData.destination}</p>
+                      <p className="text-lg font-medium text-gray-900">
+                        {formData.tripStyle === 'multi_segment'
+                          ? formData.segments.map(s => s.type === 'road_trip' ? `${s.startPoint} → ${s.endPoint}` : s.destination).join(' → ')
+                          : formData.tripStyle === 'road_trip'
+                            ? `${formData.startPoint} → ${formData.endPoint}`
+                            : formData.destination}
+                      </p>
+                      {formData.tripStyle === 'multi_segment' && (
+                        <div className="mt-2 space-y-1">
+                          {formData.segments.map((s, i) => (
+                            <p key={i} className="text-xs text-gray-500">
+                              Segment {i + 1}: {s.type === 'road_trip' ? `🚗 ${s.startPoint} → ${s.endPoint}` : s.type === 'area' ? `🗺️ ${s.destination}` : `🏙️ ${s.destination}`} ({s.startDate} → {s.endDate})
+                            </p>
+                          ))}
+                        </div>
+                      )}
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <p className="text-xs font-semibold text-gray-600">START DATE</p>
-                        <p className="text-sm font-medium text-gray-900">{formData.startDate}</p>
+                        <p className="text-sm font-medium text-gray-900">
+                          {formData.tripStyle === 'multi_segment' ? formData.segments[0]?.startDate : formData.startDate}
+                        </p>
                       </div>
                       <div>
                         <p className="text-xs font-semibold text-gray-600">END DATE</p>
-                        <p className="text-sm font-medium text-gray-900">{formData.endDate}</p>
+                        <p className="text-sm font-medium text-gray-900">
+                          {formData.tripStyle === 'multi_segment' ? formData.segments[formData.segments.length - 1]?.endDate : formData.endDate}
+                        </p>
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
