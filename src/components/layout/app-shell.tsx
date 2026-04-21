@@ -7,7 +7,7 @@ interface AppShellProps {
 
 const AppShell = ({ children }: AppShellProps) => {
   return (
-    <div className="flex h-screen flex-col bg-white">
+    <div className="flex h-screen flex-col" style={{ background: 'var(--color-background)' }}>
       <Header />
       <main className="flex-1 overflow-auto">
         {children}

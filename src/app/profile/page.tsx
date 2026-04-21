@@ -87,8 +87,8 @@ export default function ProfilePage() {
       <AppShell>
         <div className="flex items-center justify-center py-12">
           <div className="text-center">
-            <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent"></div>
-            <p className="mt-2 text-gray-600">Loading profile...</p>
+            <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-[var(--color-primary)] border-t-transparent"></div>
+            <p className="mt-2 text-[var(--color-on-surface-variant)]">Loading profile...</p>
           </div>
         </div>
       </AppShell>
@@ -97,14 +97,14 @@ export default function ProfilePage() {
 
   return (
     <AppShell>
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-[var(--color-surface-container-low)]">
         <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
           {/* Header */}
           <div className="mb-8">
-            <h1 className="text-3xl font-bold tracking-tight text-gray-900">
+            <h1 className="text-3xl font-bold tracking-tight text-[var(--color-on-surface)]">
               My Profile
             </h1>
-            <p className="mt-2 text-gray-600">Manage your travel preferences and history</p>
+            <p className="mt-2 text-[var(--color-on-surface-variant)]">Manage your travel preferences and history</p>
           </div>
 
           {/* User Info Card */}
@@ -114,31 +114,31 @@ export default function ProfilePage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <p className="text-xs font-semibold text-gray-600">EMAIL</p>
-                <p className="text-lg font-medium text-gray-900">{session?.user?.email}</p>
+                <p className="text-xs font-semibold text-[var(--color-on-surface-variant)]">EMAIL</p>
+                <p className="text-lg font-medium text-[var(--color-on-surface)]">{session?.user?.email}</p>
               </div>
               {session?.user?.name && (
                 <div>
-                  <p className="text-xs font-semibold text-gray-600">NAME</p>
-                  <p className="text-lg font-medium text-gray-900">{session.user.name}</p>
+                  <p className="text-xs font-semibold text-[var(--color-on-surface-variant)]">NAME</p>
+                  <p className="text-lg font-medium text-[var(--color-on-surface)]">{session.user.name}</p>
                 </div>
               )}
             </CardContent>
           </Card>
 
           {error && (
-            <div className="mb-6 rounded-lg bg-red-50 p-4">
-              <p className="text-sm text-red-800">{error}</p>
+            <div className="mb-6 rounded-lg bg-[var(--color-error-container)] p-4">
+              <p className="text-sm text-[var(--color-error)]">{error}</p>
             </div>
           )}
 
           {/* Travel Preferences Section */}
           <div className="space-y-6">
             <div>
-              <h2 className="text-xl font-bold text-gray-900 mb-4">
+              <h2 className="text-xl font-bold text-[var(--color-on-surface)] mb-4">
                 Your Travel Preferences
               </h2>
-              <p className="text-gray-600 mb-4">
+              <p className="text-[var(--color-on-surface-variant)] mb-4">
                 Preferences accumulated from your trip reflections
               </p>
 
@@ -146,8 +146,8 @@ export default function ProfilePage() {
                 <Card className="border-2 border-dashed">
                   <CardContent className="flex flex-col items-center justify-center py-12 text-center">
                     <div className="text-5xl mb-4">✨</div>
-                    <h3 className="text-lg font-semibold text-gray-900">No preferences yet</h3>
-                    <p className="mt-2 text-gray-600">
+                    <h3 className="text-lg font-semibold text-[var(--color-on-surface)]">No preferences yet</h3>
+                    <p className="mt-2 text-[var(--color-on-surface-variant)]">
                       Complete trip reflections to build your preference profile
                     </p>
                   </CardContent>
@@ -165,7 +165,7 @@ export default function ProfilePage() {
                             {pref.sourceLink && (
                               <CardDescription>
                                 From reflection:{' '}
-                                <a href={pref.sourceLink} className="text-blue-600 hover:underline">
+                                <a href={pref.sourceLink} className="text-[var(--color-primary)] hover:underline">
                                   View trip
                                 </a>
                               </CardDescription>
@@ -184,7 +184,7 @@ export default function ProfilePage() {
                         {/* Interests */}
                         {pref.interests && pref.interests.length > 0 && (
                           <div>
-                            <p className="text-xs font-semibold text-gray-600 mb-2">INTERESTS</p>
+                            <p className="text-xs font-semibold text-[var(--color-on-surface-variant)] mb-2">INTERESTS</p>
                             <div className="flex flex-wrap gap-2">
                               {pref.interests.map((interest) => (
                                 <Badge key={interest}>
@@ -198,7 +198,7 @@ export default function ProfilePage() {
                         {/* Dislikes */}
                         {pref.dislikes && pref.dislikes.length > 0 && (
                           <div>
-                            <p className="text-xs font-semibold text-gray-600 mb-2">DISLIKES</p>
+                            <p className="text-xs font-semibold text-[var(--color-on-surface-variant)] mb-2">DISLIKES</p>
                             <div className="flex flex-wrap gap-2">
                               {pref.dislikes.map((dislike) => (
                                 <Badge key={dislike} variant="warning">
@@ -212,7 +212,7 @@ export default function ProfilePage() {
                         {/* Hotel Preference */}
                         {pref.hotelPreference && (
                           <div>
-                            <p className="text-xs font-semibold text-gray-600 mb-2">
+                            <p className="text-xs font-semibold text-[var(--color-on-surface-variant)] mb-2">
                               HOTEL PREFERENCE
                             </p>
                             <Badge variant="secondary">
@@ -222,7 +222,7 @@ export default function ProfilePage() {
                         )}
 
                         {/* Created Date */}
-                        <div className="text-xs text-gray-500 pt-2 border-t">
+                        <div className="text-xs text-[var(--color-on-surface-variant)] pt-2 border-t">
                           Added: {new Date(pref.createdAt).toLocaleDateString()}
                         </div>
                       </CardContent>
@@ -257,7 +257,7 @@ export default function ProfilePage() {
                   return (
                     topInterests.length > 0 && (
                       <div>
-                        <p className="text-sm font-semibold text-gray-900 mb-3">
+                        <p className="text-sm font-semibold text-[var(--color-on-surface)] mb-3">
                           Your Top Interests
                         </p>
                         <div className="flex flex-wrap gap-2">
@@ -289,7 +289,7 @@ export default function ProfilePage() {
                   return (
                     topDislikes.length > 0 && (
                       <div>
-                        <p className="text-sm font-semibold text-gray-900 mb-3">
+                        <p className="text-sm font-semibold text-[var(--color-on-surface)] mb-3">
                           Things to Avoid
                         </p>
                         <div className="flex flex-wrap gap-2">
@@ -319,7 +319,7 @@ export default function ProfilePage() {
                   return (
                     favorite && (
                       <div>
-                        <p className="text-sm font-semibold text-gray-900 mb-3">
+                        <p className="text-sm font-semibold text-[var(--color-on-surface)] mb-3">
                           Preferred Hotel Style
                         </p>
                         <Badge variant="secondary" className="text-base">

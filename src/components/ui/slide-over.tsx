@@ -46,17 +46,17 @@ const SlideOver = React.forwardRef<HTMLDivElement, SlideOverProps>(
         <div
           ref={ref}
           className={cn(
-            'fixed right-0 top-0 bottom-0 w-full sm:w-96 bg-white shadow-lg z-50 transform transition-transform duration-300 ease-out overflow-y-auto',
+            'fixed right-0 top-0 bottom-0 w-full sm:w-96 bg-[var(--color-surface-container-lowest)] shadow-level-2 z-50 transform transition-transform duration-300 ease-out overflow-y-auto',
             open ? 'translate-x-0' : 'translate-x-full',
             className
           )}
         >
           {title && (
-            <div className="flex items-center justify-between p-6 border-b border-gray-200">
-              <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
+            <div className="flex items-center justify-between p-6 border-b border-[var(--color-outline-variant)]">
+              <h2 className="text-lg font-semibold text-[var(--color-on-surface)]">{title}</h2>
               <button
                 onClick={onClose}
-                className="text-gray-400 hover:text-gray-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 rounded-md"
+                className="text-[var(--color-on-surface-variant)] hover:text-[var(--color-on-surface)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] rounded-md"
               >
                 <svg
                   className="h-6 w-6"

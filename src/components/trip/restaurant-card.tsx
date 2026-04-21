@@ -47,7 +47,7 @@ const RestaurantCard: React.FC<RestaurantCardProps> = ({
     <Card className="overflow-hidden">
       {/* Photo */}
       {photo && (
-        <div className="h-40 overflow-hidden bg-gray-200">
+        <div className="h-40 overflow-hidden bg-[var(--color-surface-container-high)]">
           <img
             src={photo}
             alt={restaurant.name}
@@ -87,7 +87,7 @@ const RestaurantCard: React.FC<RestaurantCardProps> = ({
       <CardContent className="space-y-4">
         {/* Meal Type and Cost */}
         <div className="flex items-center justify-between">
-          <p className="text-sm font-medium text-gray-700">{mealType}</p>
+          <p className="text-sm font-medium text-[var(--color-on-surface)]">{mealType}</p>
           {estimatedCost && (
             <Badge variant="default">${estimatedCost.toFixed(0)}</Badge>
           )}
@@ -96,7 +96,7 @@ const RestaurantCard: React.FC<RestaurantCardProps> = ({
         {/* Description placeholder */}
         {restaurant.dietaryOptions && restaurant.dietaryOptions.length > 0 && (
           <div>
-            <p className="text-xs font-medium text-gray-600 mb-1">Dietary Options:</p>
+            <p className="text-xs font-medium text-[var(--color-on-surface-variant)] mb-1">Dietary Options:</p>
             <div className="flex flex-wrap gap-1">
               {restaurant.dietaryOptions.map((option) => (
                 <Badge key={option} variant="outline">
@@ -126,19 +126,19 @@ const RestaurantCard: React.FC<RestaurantCardProps> = ({
         {/* Local Tips */}
         {localTips.length > 0 && (
           <div className="space-y-2">
-            <p className="text-sm font-medium text-gray-900">Local Tips</p>
+            <p className="text-sm font-medium text-[var(--color-on-surface)]">Local Tips</p>
             {localTips.slice(0, 2).map((tip, idx) => (
               <div
                 key={idx}
-                className="bg-yellow-50 border border-yellow-200 rounded-md p-2 space-y-2"
+                className="bg-[#fef08a] border border-[#854d0e] rounded-md p-2 space-y-2"
               >
-                <p className="text-sm italic text-gray-800">{tip.text}</p>
+                <p className="text-sm italic text-[var(--color-on-surface)]">{tip.text}</p>
                 <div className="flex items-center justify-between">
                   <a
                     href={tip.sourceUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-xs text-blue-600 hover:underline"
+                    className="text-xs text-[var(--color-primary)] hover:underline"
                   >
                     {tip.source}
                   </a>

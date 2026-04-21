@@ -49,7 +49,7 @@ const TransitIndicator: React.FC<TransitIndicatorProps> = ({
           <Badge variant="warning">{content}</Badge>
         </Tooltip>
       ) : (
-        <span className="text-sm text-gray-600">{content}</span>
+        <span className="text-sm text-[var(--color-on-surface-variant)]">{content}</span>
       )}
     </div>
   );

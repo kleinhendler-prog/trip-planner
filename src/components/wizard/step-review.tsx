@@ -53,34 +53,34 @@ const StepReview: React.FC<StepReviewProps> = ({
     <Card>
       <CardHeader>
         <CardTitle className="text-2xl">Review Your Trip</CardTitle>
-        <p className="text-sm text-gray-600 mt-2">
+        <p className="text-sm text-[var(--color-on-surface-variant)] mt-2">
           Make sure everything looks right before we generate your itinerary
         </p>
       </CardHeader>
 
       <CardContent className="space-y-6">
         {/* Trip Basics */}
-        <div className="bg-gray-50 rounded-lg p-4 space-y-3">
-          <h3 className="font-semibold text-gray-900">Trip Basics</h3>
+        <div className="bg-[var(--color-surface-container-low)] rounded-[12px] p-4 space-y-3">
+          <h3 className="font-semibold text-[var(--color-on-surface)]">Trip Basics</h3>
           <div className="grid grid-cols-2 gap-3 text-sm">
             <div>
-              <p className="text-gray-600">Destination</p>
-              <p className="font-medium text-gray-900">{data.destination}</p>
+              <p className="text-[var(--color-on-surface-variant)]">Destination</p>
+              <p className="font-medium text-[var(--color-on-surface)]">{data.destination}</p>
             </div>
             <div>
-              <p className="text-gray-600">Duration</p>
-              <p className="font-medium text-gray-900">{tripDays} days</p>
+              <p className="text-[var(--color-on-surface-variant)]">Duration</p>
+              <p className="font-medium text-[var(--color-on-surface)]">{tripDays} days</p>
             </div>
             <div>
-              <p className="text-gray-600">Travelers</p>
-              <p className="font-medium text-gray-900">
+              <p className="text-[var(--color-on-surface-variant)]">Travelers</p>
+              <p className="font-medium text-[var(--color-on-surface)]">
                 {totalTravelers} ({data.adults} adult{data.adults !== 1 ? 's' : ''}
                 {data.children.length > 0 && `, ${data.children.length} child${data.children.length !== 1 ? 'ren' : ''}`})
               </p>
             </div>
             <div>
-              <p className="text-gray-600">Dates</p>
-              <p className="font-medium text-gray-900">
+              <p className="text-[var(--color-on-surface-variant)]">Dates</p>
+              <p className="font-medium text-[var(--color-on-surface)]">
                 {new Date(data.startDate).toLocaleDateString('en-US', {
                   month: 'short',
                   day: 'numeric',
@@ -96,8 +96,8 @@ const StepReview: React.FC<StepReviewProps> = ({
         </div>
 
         {/* Preferences */}
-        <div className="bg-blue-50 rounded-lg p-4 space-y-3">
-          <h3 className="font-semibold text-gray-900">Your Preferences</h3>
+        <div className="bg-[var(--color-primary-fixed)] rounded-[12px] p-4 space-y-3">
+          <h3 className="font-semibold text-[var(--color-on-surface)]">Your Preferences</h3>
           <div className="flex flex-wrap gap-2">
             {data.tripType && (
               <Badge>{TRIP_TYPES[data.tripType].icon} {TRIP_TYPES[data.tripType].label}</Badge>
@@ -120,8 +120,8 @@ const StepReview: React.FC<StepReviewProps> = ({
 
         {/* Interests */}
         {data.interests.length > 0 && (
-          <div className="bg-green-50 rounded-lg p-4 space-y-3">
-            <h3 className="font-semibold text-gray-900">Interests ({data.interests.length})</h3>
+          <div className="bg-[#bbf7d0] rounded-[12px] p-4 space-y-3">
+            <h3 className="font-semibold text-[var(--color-on-surface)]">Interests ({data.interests.length})</h3>
             <div className="flex flex-wrap gap-2">
               {data.interests.map((interest) => (
                 <Badge key={interest} variant="default">
@@ -134,8 +134,8 @@ const StepReview: React.FC<StepReviewProps> = ({
 
         {/* Dislikes */}
         {data.dislikes.length > 0 && (
-          <div className="bg-orange-50 rounded-lg p-4 space-y-3">
-            <h3 className="font-semibold text-gray-900">Things to Avoid ({data.dislikes.length})</h3>
+          <div className="bg-[#fef08a] rounded-[12px] p-4 space-y-3">
+            <h3 className="font-semibold text-[var(--color-on-surface)]">Things to Avoid ({data.dislikes.length})</h3>
             <div className="flex flex-wrap gap-2">
               {data.dislikes.map((dislike) => (
                 <Badge key={dislike} variant="warning">
@@ -148,14 +148,14 @@ const StepReview: React.FC<StepReviewProps> = ({
 
         {/* Other Notes */}
         {data.otherNotes && (
-          <div className="bg-purple-50 rounded-lg p-4 space-y-2">
-            <h3 className="font-semibold text-gray-900">Additional Notes</h3>
-            <p className="text-sm text-gray-700">{data.otherNotes}</p>
+          <div className="bg-[var(--color-surface-container)] rounded-[12px] p-4 space-y-2">
+            <h3 className="font-semibold text-[var(--color-on-surface)]">Additional Notes</h3>
+            <p className="text-sm text-[var(--color-on-surface)]">{data.otherNotes}</p>
           </div>
         )}
 
         {/* Terms Agreement */}
-        <div className="border border-gray-300 rounded-lg p-4">
+        <div className="border border-[var(--color-outline-variant)] rounded-[12px] p-4">
           <label className="flex items-start gap-3 cursor-pointer">
             <input
               type="checkbox"
@@ -163,7 +163,7 @@ const StepReview: React.FC<StepReviewProps> = ({
               onChange={(e) => setAgreedToTerms(e.target.checked)}
               className="mt-1"
             />
-            <span className="text-sm text-gray-700">
+            <span className="text-sm text-[var(--color-on-surface)]">
               I understand this itinerary is AI-generated and I should verify all bookings and details before traveling.
             </span>
           </label>
@@ -190,7 +190,7 @@ const StepReview: React.FC<StepReviewProps> = ({
         </div>
 
         {/* Info */}
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-xs text-blue-800">
+        <div className="bg-[var(--color-primary-fixed)] border border-[var(--color-primary-fixed)] rounded-[12px] p-3 text-xs text-[var(--color-primary)]">
           <p>
             ℹ️ We'll create a personalized day-by-day itinerary with activities, restaurants, and hotels tailored to your preferences. This typically takes 2-3 minutes.
           </p>

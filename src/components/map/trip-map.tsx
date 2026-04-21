@@ -75,13 +75,13 @@ const NumberedMarker: React.FC<{
       <Popup>
         <div className="p-2">
           <p className="font-semibold text-sm">{title}</p>
-          <p className="text-xs text-gray-600 capitalize">{type}</p>
+          <p className="text-xs text-[var(--color-on-surface-variant)] capitalize">{type}</p>
           {googleMapsUrl && (
             <a
               href={googleMapsUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-xs text-blue-600 hover:underline mt-2 inline-block"
+              className="text-xs text-[var(--color-primary)] hover:underline mt-2 inline-block"
             >
               Open in Google Maps
             </a>
@@ -178,8 +178,8 @@ const TripMap: React.FC<TripMapProps> = ({ trip }) => {
   return (
     <div className="w-full h-full flex flex-col">
       {/* Day Filter Checkboxes */}
-      <div className="p-4 border-b border-gray-200 bg-white">
-        <h3 className="text-sm font-semibold text-gray-900 mb-3">Filter by Day</h3>
+      <div className="p-4 border-b border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)]">
+        <h3 className="text-sm font-semibold text-[var(--color-on-surface)] mb-3">Filter by Day</h3>
         <div className="flex flex-wrap gap-3">
           {trip.days.map((day) => (
             <label
@@ -194,7 +194,7 @@ const TripMap: React.FC<TripMapProps> = ({ trip }) => {
                 className="w-3 h-3 rounded-full"
                 style={{ backgroundColor: DAY_COLORS[day.dayNumber - 1] }}
               />
-              <span className="text-sm text-gray-700">
+              <span className="text-sm text-[var(--color-on-surface)]">
                 Day {day.dayNumber}
               </span>
             </label>
@@ -223,8 +223,8 @@ const TripMap: React.FC<TripMapProps> = ({ trip }) => {
       </div>
 
       {/* Legend */}
-      <div className="p-4 border-t border-gray-200 bg-white">
-        <h3 className="text-sm font-semibold text-gray-900 mb-3">Legend</h3>
+      <div className="p-4 border-t border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)]">
+        <h3 className="text-sm font-semibold text-[var(--color-on-surface)] mb-3">Legend</h3>
         <div className="grid grid-cols-2 gap-2 text-xs">
           {trip.days.map((day) => (
             <div key={day.id} className="flex items-center gap-2">
@@ -232,7 +232,7 @@ const TripMap: React.FC<TripMapProps> = ({ trip }) => {
                 className="w-4 h-4 rounded-full"
                 style={{ backgroundColor: DAY_COLORS[day.dayNumber - 1] }}
               />
-              <span className="text-gray-700">Day {day.dayNumber}</span>
+              <span className="text-[var(--color-on-surface)]">Day {day.dayNumber}</span>
             </div>
           ))}
         </div>

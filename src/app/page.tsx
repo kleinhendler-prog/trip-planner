@@ -131,8 +131,8 @@ export default function HomePage() {
       <AppShell>
         <div className="flex items-center justify-center py-12">
           <div className="text-center">
-            <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent"></div>
-            <p className="mt-2 text-gray-600">Loading your trips...</p>
+            <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-[var(--color-primary)] border-t-transparent"></div>
+            <p className="mt-3 text-[var(--color-on-surface-variant)]">Loading your trips...</p>
           </div>
         </div>
       </AppShell>
@@ -141,17 +141,20 @@ export default function HomePage() {
 
   return (
     <AppShell>
-      <div className="min-h-screen bg-gray-50">
-        <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
+      <div className="min-h-screen" style={{ background: 'var(--color-background)' }}>
+        <div className="mx-auto max-w-[1200px] px-6 py-8">
           {/* Profile Completion Banner */}
           {!profileCompleted && (
-            <div className="mb-6 rounded-lg bg-blue-50 border border-blue-200 p-4 flex items-center justify-between">
-              <p className="text-sm text-blue-900">
-                <span className="font-semibold">Complete your travel profile</span> to get more personalized trips
-              </p>
+            <div className="mb-6 rounded-[16px] bg-[var(--color-primary-fixed)] border border-[var(--color-primary-fixed-dim)] p-4 flex items-center justify-between shadow-level-1">
+              <div className="flex items-center gap-3">
+                <span className="material-symbols-outlined text-[var(--color-primary)]" style={{ fontVariationSettings: "'FILL' 1" }}>person</span>
+                <p className="text-sm text-[var(--color-on-surface)]">
+                  <span className="font-bold">Complete your travel profile</span> to get more personalized trips
+                </p>
+              </div>
               <Button
+                size="sm"
                 onClick={() => router.push('/profile-setup')}
-                className="ml-4 bg-blue-600 hover:bg-blue-700"
               >
                 Set Up Profile
               </Button>
@@ -161,12 +164,11 @@ export default function HomePage() {
           {/* Header */}
           <div className="mb-8 flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold tracking-tight text-gray-900">My Trips</h1>
-              <p className="mt-1 text-gray-600">Plan and manage your adventures</p>
+              <h1 className="text-h2 text-[var(--color-on-surface)]">My Trips</h1>
+              <p className="mt-1 text-[var(--color-on-surface-variant)]">Plan and manage your adventures</p>
             </div>
             <Button
               onClick={() => router.push('/trips/new')}
-              className="bg-blue-600 hover:bg-blue-700"
             >
               New Trip
             </Button>
@@ -174,67 +176,67 @@ export default function HomePage() {
 
           {/* Error Message */}
           {error && (
-            <div className="mb-6 rounded-lg bg-red-50 p-4">
-              <p className="text-sm text-red-800">{error}</p>
+            <div className="mb-6 rounded-[16px] bg-[var(--color-error-container)] p-4 flex items-start gap-3 shadow-level-1">
+              <span className="material-symbols-outlined text-[var(--color-error)]" style={{ fontVariationSettings: "'FILL' 1" }}>error</span>
+              <div>
+                <p className="text-sm font-bold text-[var(--color-on-error-container)]">Something went wrong</p>
+                <p className="text-sm text-[var(--color-on-error-container)]">{error}</p>
+              </div>
             </div>
           )}
 
           {/* Empty State */}
           {trips.length === 0 ? (
-            <Card className="border-2 border-dashed">
-              <CardContent className="flex flex-col items-center justify-center py-16 text-center">
-                <div className="text-5xl mb-4">✈️</div>
-                <h3 className="text-lg font-semibold text-gray-900">No trips yet</h3>
-                <p className="mt-2 text-gray-600">
-                  Create your first trip to get started planning with AI
-                </p>
-                <Button
-                  onClick={() => router.push('/trips/new')}
-                  className="mt-4 bg-blue-600 hover:bg-blue-700"
-                >
-                  Create Your First Trip
-                </Button>
-              </CardContent>
-            </Card>
+            <div className="rounded-[16px] border-2 border-dashed border-[var(--color-outline-variant)] p-16 flex flex-col items-center justify-center text-center">
+              <div className="w-16 h-16 rounded-full bg-[var(--color-surface-container-high)] flex items-center justify-center mb-4">
+                <span className="material-symbols-outlined text-[var(--color-primary)] text-3xl">luggage</span>
+              </div>
+              <h3 className="font-heading text-lg font-bold text-[var(--color-on-surface)] mb-2">No trips planned yet</h3>
+              <p className="text-[var(--color-on-surface-variant)] mb-6">
+                Start building your next adventure with AI
+              </p>
+              <Button
+                onClick={() => router.push('/trips/new')}
+              >
+                Create Your First Trip
+              </Button>
+            </div>
           ) : (
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
               {trips.map((trip) => (
-                <Card key={trip.id} className="overflow-hidden hover:shadow-lg transition-shadow">
-                  {/* Placeholder for destination photo */}
-                  <div className="h-48 bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white text-4xl">
-                    📍
+                <Card key={trip.id} className="overflow-hidden hover-lift cursor-pointer group">
+                  {/* Gradient placeholder header */}
+                  <div className="h-44 bg-primary-gradient relative overflow-hidden">
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+                    <div className="absolute top-3 right-3">
+                      <Badge variant="outline" className="bg-white/90 backdrop-blur-sm text-[var(--color-primary)] border-0 shadow-sm">
+                        {trip.status}
+                      </Badge>
+                    </div>
+                    <div className="absolute bottom-4 left-4 right-4 text-white">
+                      <h3 className="font-heading text-xl font-bold mb-1 drop-shadow-sm">
+                        {(trip as any).profile?.title || `Trip to ${typeof trip.destination === 'string' ? trip.destination : (trip.destination as any)?.name || 'Destination'}`}
+                      </h3>
+                      <p className="text-white/90 text-sm flex items-center gap-1.5">
+                        <span className="material-symbols-outlined text-[16px]">calendar_month</span>
+                        {formatDateRange((trip as any).start_date || trip.startDate, (trip as any).end_date || trip.endDate)}
+                      </p>
+                    </div>
                   </div>
 
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-xl">{(trip as any).profile?.title || `Trip to ${typeof trip.destination === 'string' ? trip.destination : (trip.destination as any)?.name || 'Destination'}`}</CardTitle>
-                    <CardDescription>{typeof trip.destination === 'string' ? trip.destination : (trip.destination as any)?.name}</CardDescription>
-                  </CardHeader>
-
-                  <CardContent className="space-y-4">
-                    <div className="space-y-2 text-sm">
-                      <div className="flex items-center justify-between">
-                        <span className="text-gray-600">Dates:</span>
-                        <span className="font-medium">
-                          {formatDateRange((trip as any).start_date || trip.startDate, (trip as any).end_date || trip.endDate)}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-gray-600">Duration:</span>
-                        <Badge>
-                          {getDayCount((trip as any).start_date || trip.startDate, (trip as any).end_date || trip.endDate)} days
-                        </Badge>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-gray-600">Status:</span>
-                        <Badge variant="secondary">
-                          {trip.status}
-                        </Badge>
-                      </div>
+                  <CardContent className="p-5 space-y-4">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-[var(--color-on-surface-variant)] flex items-center gap-1.5">
+                        <span className="material-symbols-outlined text-[16px] text-[var(--color-tertiary)]">schedule</span>
+                        {getDayCount((trip as any).start_date || trip.startDate, (trip as any).end_date || trip.endDate)} days
+                      </span>
+                      <span className="text-[var(--color-on-surface-variant)]">
+                        {typeof trip.destination === 'string' ? trip.destination : (trip.destination as any)?.name}
+                      </span>
                     </div>
 
-                    <div className="flex gap-2 pt-2">
+                    <div className="flex gap-2 pt-1">
                       <Button
-                        variant="default"
                         size="sm"
                         className="flex-1"
                         onClick={() => router.push(`/trips/${trip.id}`)}

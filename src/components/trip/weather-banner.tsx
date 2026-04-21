@@ -52,7 +52,7 @@ const WeatherBanner: React.FC<WeatherBannerProps> = ({
     <div className="space-y-4">
       {/* Tier A: Climate Banner */}
       {climateInfo && (
-        <Card className="border-blue-200 bg-blue-50">
+        <Card className="border-[var(--color-primary-fixed)] bg-[var(--color-primary-fixed)]">
           <CardHeader className="pb-3">
             <CardTitle className="text-base flex items-center gap-2">
               <span className="text-2xl">🌍</span>
@@ -60,9 +60,9 @@ const WeatherBanner: React.FC<WeatherBannerProps> = ({
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
-            <p className="text-sm text-gray-800">{climateInfo}</p>
+            <p className="text-sm text-[var(--color-on-surface)]">{climateInfo}</p>
             {backupInfo && (
-              <p className="text-xs text-gray-600 italic">
+              <p className="text-xs text-[var(--color-on-surface-variant)] italic">
                 📍 {backupInfo}
               </p>
             )}
@@ -87,7 +87,7 @@ const WeatherBanner: React.FC<WeatherBannerProps> = ({
                       expandedDay === item.dayNumber ? null : item.dayNumber
                     )
                   }
-                  className="inline-flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-full hover:bg-gray-50 transition-colors"
+                  className="inline-flex items-center gap-2 px-3 py-2 border border-[var(--color-outline-variant)] rounded-full hover:bg-[var(--color-surface-container-low)] transition-colors"
                 >
                   <span className="text-lg">
                     {getWeatherIcon(item.weather.condition)}
@@ -95,7 +95,7 @@ const WeatherBanner: React.FC<WeatherBannerProps> = ({
                   <span className="text-sm font-medium">
                     Day {item.dayNumber}
                   </span>
-                  <span className="text-sm text-gray-600">
+                  <span className="text-sm text-[var(--color-on-surface-variant)]">
                     {Math.round(item.weather.highTemp)}°
                   </span>
                 </button>
@@ -104,19 +104,19 @@ const WeatherBanner: React.FC<WeatherBannerProps> = ({
 
             {/* Expanded Day Details */}
             {expandedDay !== null && (
-              <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+              <div className="mt-4 p-4 bg-[var(--color-surface-container-low)] rounded-[12px] border border-[var(--color-outline-variant)]">
                 {dailyWeather
                   .filter((item) => item.dayNumber === expandedDay)
                   .map((item) => (
                     <div key={item.dayNumber} className="space-y-3">
                       <div>
-                        <p className="font-semibold text-gray-900">
+                        <p className="font-semibold text-[var(--color-on-surface)]">
                           Day {item.dayNumber} Weather
                         </p>
-                        <p className="text-sm text-gray-700 mt-1">
+                        <p className="text-sm text-[var(--color-on-surface)] mt-1">
                           {item.weather.condition}
                         </p>
-                        <p className="text-xs text-gray-600 mt-1">
+                        <p className="text-xs text-[var(--color-on-surface-variant)] mt-1">
                           {Math.round(item.weather.lowTemp)}° - {Math.round(item.weather.highTemp)}°C
                           {item.weather.precipitation > 0 && (
                             <span> • {Math.round(item.weather.precipitation)}mm rain</span>
@@ -126,12 +126,12 @@ const WeatherBanner: React.FC<WeatherBannerProps> = ({
 
                       {/* Rain Swaps */}
                       {item.rainSwaps && item.rainSwaps.length > 0 && (
-                        <div className="border-t border-gray-300 pt-3">
-                          <p className="text-sm font-medium text-gray-900 mb-2">
+                        <div className="border-t border-[var(--color-outline-variant)] pt-3">
+                          <p className="text-sm font-medium text-[var(--color-on-surface)] mb-2">
                             💡 Rainy Day Alternatives
                           </p>
                           {item.rainSwaps.map((swap, idx) => (
-                            <div key={idx} className="text-sm text-gray-700 mb-2">
+                            <div key={idx} className="text-sm text-[var(--color-on-surface)] mb-2">
                               <Badge variant="secondary" className="mr-2">
                                 Alternative
                               </Badge>
@@ -147,7 +147,7 @@ const WeatherBanner: React.FC<WeatherBannerProps> = ({
 
             {/* Rain Swap Actions */}
             {rainyDays.length > 0 && (
-              <div className="border-t border-gray-200 pt-3 mt-3 flex gap-2">
+              <div className="border-t border-[var(--color-outline-variant)] pt-3 mt-3 flex gap-2">
                 {onApplyAllSwaps && (
                   <Button
                     variant="default"

@@ -44,7 +44,7 @@ const StepInterests: React.FC<StepInterestsProps> = ({
     <Card>
       <CardHeader>
         <CardTitle className="text-2xl">What are your interests?</CardTitle>
-        <p className="text-sm text-gray-600 mt-2">
+        <p className="text-sm text-[var(--color-on-surface-variant)] mt-2">
           Help us tailor your itinerary to your preferences
         </p>
       </CardHeader>
@@ -52,7 +52,7 @@ const StepInterests: React.FC<StepInterestsProps> = ({
       <CardContent className="space-y-6">
         {/* Interests Selection */}
         <div>
-          <label className="block text-sm font-medium text-gray-900 mb-3">
+          <label className="block text-sm font-medium text-[var(--color-on-surface)] mb-3">
             What interests you?
           </label>
           <Chip
@@ -61,7 +61,7 @@ const StepInterests: React.FC<StepInterestsProps> = ({
             onChange={(selected) => onInterestsChange(selected as Interest[])}
           />
           {interests.length === 0 && (
-            <p className="text-xs text-gray-600 mt-2">
+            <p className="text-xs text-[var(--color-on-surface-variant)] mt-2">
               Please select at least one interest.
             </p>
           )}
@@ -69,7 +69,7 @@ const StepInterests: React.FC<StepInterestsProps> = ({
 
         {/* Dislikes Selection */}
         <div>
-          <label className="block text-sm font-medium text-gray-900 mb-3">
+          <label className="block text-sm font-medium text-[var(--color-on-surface)] mb-3">
             What would you like to avoid?
           </label>
           <Chip
@@ -78,7 +78,7 @@ const StepInterests: React.FC<StepInterestsProps> = ({
             onChange={(selected) => onDislikesChange(selected as Dislike[])}
           />
           {dislikes.length > 0 && (
-            <p className="text-xs text-gray-600 mt-2">
+            <p className="text-xs text-[var(--color-on-surface-variant)] mt-2">
               {dislikes.length} preference{dislikes.length !== 1 ? 's' : ''} noted
             </p>
           )}
@@ -87,22 +87,22 @@ const StepInterests: React.FC<StepInterestsProps> = ({
         {/* Additional Notes */}
         {onNotesChange && (
           <div>
-            <label className="block text-sm font-medium text-gray-900 mb-2">
+            <label className="block text-sm font-medium text-[var(--color-on-surface)] mb-2">
               Anything else we should know? (optional)
             </label>
             <textarea
               value={otherNotes}
               onChange={(e) => onNotesChange(e.target.value)}
               placeholder="e.g., Must-see spots, specific restaurants, travel style..."
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent resize-none"
+              className="w-full px-3 py-2 border border-[var(--color-outline-variant)] rounded-[12px] text-sm text-[var(--color-on-surface)] placeholder-[var(--color-on-surface-variant)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent resize-none"
               rows={3}
             />
           </div>
         )}
 
         {/* Summary */}
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <p className="text-sm text-gray-900">
+        <div className="bg-[var(--color-primary-fixed)] border border-[var(--color-primary-fixed)] rounded-[12px] p-4">
+          <p className="text-sm text-[var(--color-on-surface)]">
             <span className="font-semibold">{interests.length}</span> interest{interests.length !== 1 ? 's' : ''} selected
             {dislikes.length > 0 && (
               <>, <span className="font-semibold">{dislikes.length}</span> dislikes noted</>

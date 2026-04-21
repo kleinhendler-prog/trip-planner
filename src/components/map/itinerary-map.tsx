@@ -92,7 +92,7 @@ export default function ItineraryMap({ days }: ItineraryMapProps) {
 
   if (markers.length === 0) {
     return (
-      <div className="h-64 flex items-center justify-center bg-gray-50 rounded border text-gray-500 text-sm">
+      <div className="h-64 flex items-center justify-center bg-[var(--color-surface-container-low)] rounded border text-[var(--color-on-surface-variant)] text-sm">
         No location data available for the map
       </div>
     );
@@ -133,12 +133,12 @@ export default function ItineraryMap({ days }: ItineraryMapProps) {
             <Popup>
               <div className="text-sm">
                 <div className="font-semibold">{m.name}</div>
-                <div className="text-xs text-gray-600">Day {m.dayNumber} · {m.time}</div>
+                <div className="text-xs text-[var(--color-on-surface-variant)]">Day {m.dayNumber} · {m.time}</div>
                 <a
                   href={`https://www.google.com/maps/search/?api=1&query=${m.lat},${m.lng}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-xs text-blue-600 hover:underline"
+                  className="text-xs text-[var(--color-primary)] hover:underline"
                 >
                   Open in Google Maps ↗
                 </a>
@@ -148,7 +148,7 @@ export default function ItineraryMap({ days }: ItineraryMapProps) {
         ))}
       </MapContainer>
       {/* Day legend */}
-      <div className="absolute top-2 right-2 z-[1000] bg-white rounded-lg shadow-md p-2 max-w-[180px]">
+      <div className="absolute top-2 right-2 z-[1000] bg-[var(--color-surface-container-lowest)] rounded-[12px] shadow-level-2 p-2 max-w-[180px]">
         <div className="text-xs font-semibold mb-1">Days</div>
         <div className="flex flex-wrap gap-1">
           {days.map((day) => (
@@ -161,7 +161,7 @@ export default function ItineraryMap({ days }: ItineraryMapProps) {
                 className="w-3 h-3 rounded-full"
                 style={{ backgroundColor: DAY_COLORS[(day.dayNumber - 1) % DAY_COLORS.length] }}
               />
-              <span className="text-gray-700">{day.dayNumber}</span>
+              <span className="text-[var(--color-on-surface)]">{day.dayNumber}</span>
             </div>
           ))}
         </div>

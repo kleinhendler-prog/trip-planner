@@ -31,7 +31,7 @@ const HotelCard: React.FC<HotelCardProps> = ({
     <Card className="overflow-hidden">
       {/* Photo */}
       {photo && (
-        <div className="h-40 overflow-hidden bg-gray-200">
+        <div className="h-40 overflow-hidden bg-[var(--color-surface-container-high)]">
           <img
             src={photo}
             alt={hotel.name}
@@ -69,18 +69,18 @@ const HotelCard: React.FC<HotelCardProps> = ({
       <CardContent className="space-y-4">
         {/* Why this hotel */}
         {description && (
-          <p className="text-sm text-gray-700">{description}</p>
+          <p className="text-sm text-[var(--color-on-surface)]">{description}</p>
         )}
 
         {/* Room details */}
         {hotel.roomType && (
-          <div className="text-sm text-gray-600">
+          <div className="text-sm text-[var(--color-on-surface-variant)]">
             <span className="font-medium">Room Type:</span> {hotel.roomType}
           </div>
         )}
 
         {/* Dates */}
-        <div className="text-sm text-gray-600">
+        <div className="text-sm text-[var(--color-on-surface-variant)]">
           <span className="font-medium">Check-in:</span> {new Date(hotel.checkInDate).toLocaleDateString()}
           <br />
           <span className="font-medium">Check-out:</span> {new Date(hotel.checkOutDate).toLocaleDateString()}
@@ -89,7 +89,7 @@ const HotelCard: React.FC<HotelCardProps> = ({
         {/* Amenities */}
         {hotel.amenities && hotel.amenities.length > 0 && (
           <div>
-            <p className="text-sm font-medium text-gray-900 mb-2">Amenities</p>
+            <p className="text-sm font-medium text-[var(--color-on-surface)] mb-2">Amenities</p>
             <div className="flex flex-wrap gap-1">
               {hotel.amenities.map((amenity) => (
                 <Badge key={amenity} variant="outline">
@@ -101,18 +101,18 @@ const HotelCard: React.FC<HotelCardProps> = ({
         )}
 
         {/* Pricing */}
-        <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
+        <div className="bg-[var(--color-primary-fixed)] border border-[var(--color-primary-fixed)] rounded-md p-3">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs text-gray-600">Per night</p>
-              <p className="text-lg font-bold text-blue-900">
+              <p className="text-xs text-[var(--color-on-surface-variant)]">Per night</p>
+              <p className="text-lg font-bold text-[var(--color-primary)]">
                 ${hotel.pricePerNight?.toFixed(0) || 'TBD'}
               </p>
             </div>
             {totalCost && (
               <div className="text-right">
-                <p className="text-xs text-gray-600">Total ({nights} nights)</p>
-                <p className="text-lg font-bold text-blue-900">
+                <p className="text-xs text-[var(--color-on-surface-variant)]">Total ({nights} nights)</p>
+                <p className="text-lg font-bold text-[var(--color-primary)]">
                   ${totalCost.toFixed(0)}
                 </p>
               </div>

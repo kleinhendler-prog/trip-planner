@@ -42,7 +42,7 @@ function LoginContent() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12 sm:px-6 lg:px-8">
+    <div className="flex min-h-screen items-center justify-center px-4 py-12 sm:px-6 lg:px-8" style={{ background: 'var(--color-background)' }}>
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-2 text-center">
           <CardTitle className="text-2xl">Sign In</CardTitle>
@@ -53,8 +53,8 @@ function LoginContent() {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             {(error || hasError) && (
-              <div className="rounded-md bg-red-50 p-4">
-                <p className="text-sm text-red-800">
+              <div className="rounded-[12px] bg-[var(--color-error-container)] p-4">
+                <p className="text-sm text-[var(--color-on-error-container)]">
                   {error || 'Invalid username or password'}
                 </p>
               </div>

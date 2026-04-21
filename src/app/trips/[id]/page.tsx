@@ -11,7 +11,7 @@ import { apiClient } from '@/lib/api-client';
 
 const ItineraryMap = dynamic(() => import('@/components/map/itinerary-map'), {
   ssr: false,
-  loading: () => <div className="h-[500px] bg-gray-50 rounded-lg border flex items-center justify-center text-gray-500">Loading map...</div>,
+  loading: () => <div className="h-[500px] bg-[var(--color-surface-container)] rounded-lg border flex items-center justify-center text-[var(--color-on-surface-variant)]">Loading map...</div>,
 });
 
 /* ── Types ──────────────────────────────────────────────── */
@@ -128,9 +128,9 @@ const FIND_EMOJI: Record<string, string> = {
 };
 
 const RES_BADGE: Record<string, { label: string; color: string }> = {
-  REQUIRED: { label: 'Must Book', color: 'bg-red-100 text-red-800 border-red-200' },
-  RECOMMENDED: { label: 'Book Ahead', color: 'bg-amber-100 text-amber-800 border-amber-200' },
-  WALK_IN_OK: { label: 'Walk-in OK', color: 'bg-green-100 text-green-800 border-green-200' },
+  REQUIRED: { label: 'Must Book', color: 'bg-[var(--color-error-container)] text-[var(--color-on-error-container)] border-[var(--color-error-container)]' },
+  RECOMMENDED: { label: 'Book Ahead', color: 'bg-[#fef08a] text-[#854d0e] border-[#fef08a]' },
+  WALK_IN_OK: { label: 'Walk-in OK', color: 'bg-[#bbf7d0] text-[#166534] border-[#bbf7d0]' },
 };
 
 /* ── Page Component ─────────────────────────────────────── */
@@ -341,7 +341,7 @@ export default function TripViewPage() {
     return (
       <AppShell>
         <div className="mx-auto max-w-5xl px-4 py-8">
-          <div className="text-center text-gray-500">Loading trip...</div>
+          <div className="text-center text-[var(--color-on-surface-variant)]">Loading trip...</div>
         </div>
       </AppShell>
     );
@@ -353,7 +353,7 @@ export default function TripViewPage() {
         <div className="mx-auto max-w-5xl px-4 py-8">
           <Card>
             <CardContent className="py-12 text-center">
-              <p className="text-red-600 mb-4">{error || 'Trip not found'}</p>
+              <p className="text-[var(--color-error)] mb-4">{error || 'Trip not found'}</p>
               <Button onClick={() => router.push('/')}>Back to Trips</Button>
             </CardContent>
           </Card>
@@ -374,10 +374,10 @@ export default function TripViewPage() {
               <CardDescription>Our AI is crafting a personalized itinerary. This usually takes 30-90 seconds.</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="h-2 w-full bg-gray-200 rounded-full overflow-hidden">
-                <div className="h-full bg-blue-500 animate-pulse" style={{ width: '60%' }} />
+              <div className="h-2 w-full bg-[var(--color-surface-variant)] rounded-full overflow-hidden">
+                <div className="h-full bg-primary-gradient animate-pulse rounded-full" style={{ width: '60%' }} />
               </div>
-              <p className="mt-4 text-sm text-gray-500">This page will refresh automatically when your itinerary is ready.</p>
+              <p className="mt-4 text-sm text-[var(--color-on-surface-variant)]">This page will refresh automatically when your itinerary is ready.</p>
             </CardContent>
           </Card>
         </div>
@@ -391,7 +391,7 @@ export default function TripViewPage() {
         <div className="mx-auto max-w-5xl px-4 py-8">
           <Card>
             <CardHeader>
-              <CardTitle className="text-red-600">Generation failed</CardTitle>
+              <CardTitle className="text-[var(--color-error)]">Generation failed</CardTitle>
               <CardDescription>Something went wrong while generating your itinerary for {destination}.</CardDescription>
             </CardHeader>
             <CardContent>
@@ -410,7 +410,7 @@ export default function TripViewPage() {
         <div className="mx-auto max-w-5xl px-4 py-8">
           <Card>
             <CardContent className="py-12 text-center">
-              <p className="text-gray-500 mb-4">No itinerary yet.</p>
+              <p className="text-[var(--color-on-surface-variant)] mb-4">No itinerary yet.</p>
               <Button onClick={() => router.push('/')}>Back to Trips</Button>
             </CardContent>
           </Card>
@@ -449,29 +449,32 @@ export default function TripViewPage() {
               </Button>
             </div>
           </div>
-          <h1 className="text-3xl font-bold">{destination}</h1>
-          <p className="text-gray-600">
+          <h1 className="text-h2 text-[var(--color-on-surface)]">{destination}</h1>
+          <p className="text-[var(--color-on-surface-variant)]">
             {trip.start_date} &rarr; {trip.end_date} &middot; {trip.profile?.travelers || 2} travelers
           </p>
         </div>
 
         {/* Must-Book-Now Banner */}
         {mustBookItems.length > 0 && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-lg">&#9888;&#65039;</span>
-              <h3 className="font-bold text-red-800">{mustBookItems.length} attraction{mustBookItems.length > 1 ? 's' : ''} require advance booking</h3>
+          <div className="bg-[var(--color-error-container)] border border-[var(--color-error-container)] rounded-[16px] p-4 shadow-level-1">
+            <div className="flex items-center gap-3 mb-3">
+              <span className="material-symbols-outlined text-[var(--color-error)]" style={{ fontVariationSettings: "'FILL' 1" }}>warning</span>
+              <div>
+                <p className="text-label-mono text-[var(--color-error)] font-bold uppercase tracking-wider text-xs">Must Book Now</p>
+                <h3 className="font-heading font-bold text-[var(--color-on-error-container)]">{mustBookItems.length} attraction{mustBookItems.length > 1 ? 's' : ''} require advance booking</h3>
+              </div>
             </div>
             <div className="space-y-2">
               {mustBookItems.map((item, i) => (
-                <div key={i} className="flex items-center justify-between bg-white rounded p-2 border border-red-100">
+                <div key={i} className="flex items-center justify-between bg-white/80 rounded-[12px] p-3 border border-[var(--color-error-container)]">
                   <div>
                     <span className="font-medium">{item.name}</span>
-                    <span className="text-sm text-gray-500 ml-2">Day {item.dayNumber}</span>
+                    <span className="text-sm text-[var(--color-on-surface-variant)] ml-2">Day {item.dayNumber}</span>
                   </div>
                   {item.bookingUrl ? (
                     <a href={item.bookingUrl} target="_blank" rel="noopener noreferrer">
-                      <Button size="sm" className="bg-red-600 hover:bg-red-700 text-white">Book Now</Button>
+                      <Button size="sm" className="bg-[var(--color-error)] hover:opacity-90 text-white">Book Now</Button>
                     </a>
                   ) : (
                     <a href={`https://www.google.com/search?q=book+tickets+${encodeURIComponent(item.name)}+${encodeURIComponent(destination)}`} target="_blank" rel="noopener noreferrer">
@@ -486,9 +489,12 @@ export default function TripViewPage() {
 
         {/* Climate Note */}
         {itin.climateNote && (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 flex items-center gap-2">
-            <span className="text-xl">&#127780;&#65039;</span>
-            <p className="text-sm text-blue-800">{itin.climateNote}</p>
+          <div className="bg-[var(--color-surface-container-high)] border border-[var(--color-surface-container-high)] rounded-[16px] p-4 flex items-start gap-3 shadow-level-1">
+            <span className="material-symbols-outlined text-[var(--color-primary)] mt-0.5" style={{ fontVariationSettings: "'FILL' 1" }}>cloud</span>
+            <div>
+              <p className="text-label-mono text-[var(--color-primary)] font-bold uppercase tracking-wider text-xs mb-1">Weather Alert</p>
+              <p className="text-sm text-[var(--color-on-surface)]">{itin.climateNote}</p>
+            </div>
           </div>
         )}
 
@@ -496,11 +502,11 @@ export default function TripViewPage() {
         <Card>
           <CardHeader><CardTitle>Overview</CardTitle></CardHeader>
           <CardContent>
-            <p className="text-gray-700">{itin.summary}</p>
+            <p className="text-[var(--color-on-surface)]">{itin.summary}</p>
             {itin.highlights && itin.highlights.length > 0 && (
               <div className="mt-4">
                 <h3 className="font-semibold mb-2">Highlights</h3>
-                <ul className="list-disc list-inside space-y-1 text-gray-700">
+                <ul className="list-disc list-inside space-y-1 text-[var(--color-on-surface)]">
                   {itin.highlights.map((h, i) => <li key={i}>{h}</li>)}
                 </ul>
               </div>
@@ -514,7 +520,7 @@ export default function TripViewPage() {
             <CardHeader><CardTitle>Hotel Recommendations</CardTitle></CardHeader>
             <CardContent className="space-y-3">
               {itin.hotelRecommendations.map((h, i) => (
-                <div key={i} className="p-3 rounded border hover:bg-gray-50">
+                <div key={i} className="p-4 rounded-[12px] border border-[var(--color-surface-dim)] hover:shadow-level-1 transition-shadow">
                   <div className="flex items-center justify-between flex-wrap gap-2">
                     <div className="flex items-center gap-2">
                       <h4 className="font-semibold">{h.name}</h4>
@@ -522,8 +528,8 @@ export default function TripViewPage() {
                     </div>
                     <Badge>{h.priceRange}</Badge>
                   </div>
-                  <p className="text-sm text-gray-500">{h.area}</p>
-                  <p className="text-sm text-gray-700 mt-1">{h.why}</p>
+                  <p className="text-sm text-[var(--color-on-surface-variant)]">{h.area}</p>
+                  <p className="text-sm text-[var(--color-on-surface)] mt-1">{h.why}</p>
                   <div className="mt-2 flex gap-2">
                     {h.bookingUrl && (
                       <a href={h.bookingUrl} target="_blank" rel="noopener noreferrer">
@@ -544,12 +550,12 @@ export default function TripViewPage() {
         {itin.budgetEstimate && (
           <Card>
             <button onClick={() => setBudgetCollapsed(!budgetCollapsed)} className="w-full text-left">
-              <CardHeader className="hover:bg-gray-50 transition-colors">
+              <CardHeader className="hover:bg-[var(--color-surface-container-low)] transition-colors">
                 <div className="flex items-center justify-between">
                   <CardTitle>Budget Estimate</CardTitle>
                   <div className="flex items-center gap-2">
                     <Badge variant="secondary">{itin.budgetEstimate.total} total</Badge>
-                    <span className="text-gray-400">{budgetCollapsed ? '\u25BC' : '\u25B2'}</span>
+                    <span className="text-[var(--color-outline)]">{budgetCollapsed ? '\u25BC' : '\u25B2'}</span>
                   </div>
                 </div>
               </CardHeader>
@@ -558,30 +564,30 @@ export default function TripViewPage() {
               <CardContent className="space-y-3">
                 <div className="grid grid-cols-3 gap-3">
                   {itin.budgetEstimate.activitiesTotal != null && (
-                    <div className="bg-blue-50 rounded p-3 text-center">
-                      <div className="text-sm text-gray-600">Activities</div>
-                      <div className="font-bold text-lg">&euro;{itin.budgetEstimate.activitiesTotal}</div>
+                    <div className="bg-[var(--color-primary-fixed)] rounded-[12px] p-3 text-center">
+                      <div className="text-label-mono text-[var(--color-on-surface-variant)] text-xs">Activities</div>
+                      <div className="font-heading font-bold text-lg text-[var(--color-primary)]">&euro;{itin.budgetEstimate.activitiesTotal}</div>
                     </div>
                   )}
                   {itin.budgetEstimate.mealsTotal != null && (
-                    <div className="bg-green-50 rounded p-3 text-center">
-                      <div className="text-sm text-gray-600">Meals</div>
-                      <div className="font-bold text-lg">&euro;{itin.budgetEstimate.mealsTotal}</div>
+                    <div className="bg-[var(--color-secondary-fixed)] rounded-[12px] p-3 text-center">
+                      <div className="text-label-mono text-[var(--color-on-surface-variant)] text-xs">Meals</div>
+                      <div className="font-heading font-bold text-lg text-[var(--color-secondary)]">&euro;{itin.budgetEstimate.mealsTotal}</div>
                     </div>
                   )}
                   {itin.budgetEstimate.hotelsTotal != null && (
-                    <div className="bg-purple-50 rounded p-3 text-center">
-                      <div className="text-sm text-gray-600">Hotels</div>
-                      <div className="font-bold text-lg">&euro;{itin.budgetEstimate.hotelsTotal}</div>
+                    <div className="bg-[var(--color-tertiary-fixed)] rounded-[12px] p-3 text-center">
+                      <div className="text-label-mono text-[var(--color-on-surface-variant)] text-xs">Hotels</div>
+                      <div className="font-heading font-bold text-lg text-[var(--color-tertiary)]">&euro;{itin.budgetEstimate.hotelsTotal}</div>
                     </div>
                   )}
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Per day</span>
+                  <span className="text-[var(--color-on-surface-variant)]">Per day</span>
                   <span className="font-medium">{itin.budgetEstimate.perDay}</span>
                 </div>
-                <p className="text-sm text-gray-600">{itin.budgetEstimate.breakdown}</p>
-                <p className="text-xs text-gray-400 italic">Estimates only — actual prices may vary.</p>
+                <p className="text-sm text-[var(--color-on-surface-variant)]">{itin.budgetEstimate.breakdown}</p>
+                <p className="text-xs text-[var(--color-outline)] italic">Estimates only — actual prices may vary.</p>
               </CardContent>
             )}
           </Card>
@@ -618,17 +624,17 @@ export default function TripViewPage() {
 
         {/* Day-by-Day Itinerary */}
         <div className="space-y-4">
-          <h2 className="text-2xl font-bold">Your Itinerary</h2>
+          <h2 className="text-h3 text-[var(--color-on-surface)]">Your Itinerary</h2>
           {itin.days.map((day) => {
             const expanded = expandedDays.has(day.dayNumber);
             const dayColor = DAY_COLORS[(day.dayNumber - 1) % DAY_COLORS.length];
             return (
               <Card key={day.dayNumber}>
                 <button onClick={() => toggleDay(day.dayNumber)} className="w-full text-left">
-                  <CardHeader className="hover:bg-gray-50 transition-colors">
+                  <CardHeader className="hover:bg-[var(--color-surface-container-low)] transition-colors border-b border-[var(--color-surface-variant)]">
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm" style={{ backgroundColor: dayColor }}>
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-full flex items-center justify-center text-white font-heading font-bold text-lg shadow-sm" style={{ backgroundColor: dayColor }}>
                           {day.dayNumber}
                         </div>
                         <div>
@@ -642,22 +648,22 @@ export default function TripViewPage() {
                       <div className="flex items-center gap-1">
                         {/* Day reorder arrows */}
                         <button
-                          className="p-1 text-gray-400 hover:text-gray-700 disabled:opacity-30"
+                          className="p-1 rounded-full text-[var(--color-outline)] hover:text-[var(--color-primary)] hover:bg-[var(--color-surface-container)] disabled:opacity-30 transition-all"
                           disabled={reorderLoading || itin.days.indexOf(day) === 0}
                           onClick={(e) => { e.stopPropagation(); moveDay(itin.days.indexOf(day), itin.days.indexOf(day) - 1); }}
                           title="Move day up"
                         >
-                          &#x25B2;
+                          <span className="material-symbols-outlined text-[18px]">keyboard_arrow_up</span>
                         </button>
                         <button
-                          className="p-1 text-gray-400 hover:text-gray-700 disabled:opacity-30"
+                          className="p-1 rounded-full text-[var(--color-outline)] hover:text-[var(--color-primary)] hover:bg-[var(--color-surface-container)] disabled:opacity-30 transition-all"
                           disabled={reorderLoading || itin.days.indexOf(day) === itin.days.length - 1}
                           onClick={(e) => { e.stopPropagation(); moveDay(itin.days.indexOf(day), itin.days.indexOf(day) + 1); }}
                           title="Move day down"
                         >
-                          &#x25BC;
+                          <span className="material-symbols-outlined text-[18px]">keyboard_arrow_down</span>
                         </button>
-                        <span className="text-gray-400 ml-1">{expanded ? '\u25B2' : '\u25BC'}</span>
+                        <span className="material-symbols-outlined text-[var(--color-on-surface-variant)] ml-1 transition-transform" style={{ transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)' }}>expand_more</span>
                       </div>
                     </div>
                   </CardHeader>
@@ -672,23 +678,26 @@ export default function TripViewPage() {
                     )}
 
                     {day.narration && (
-                      <p className="text-gray-600 italic border-l-4 border-blue-200 pl-3 py-1">{day.narration}</p>
+                      <p className="text-[var(--color-on-surface-variant)] italic border-l-4 border-[var(--color-primary-fixed)] pl-3 py-1">{day.narration}</p>
                     )}
 
                     {/* Parking suggestion */}
                     {day.parkingSuggestion && (
-                      <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded p-2">
-                        <span className="text-lg">&#x1F17F;&#xFE0F;</span>
-                        <p className="text-sm text-amber-800">{day.parkingSuggestion}</p>
+                      <div className="flex items-start gap-3 bg-[var(--color-tertiary-fixed)] rounded-[12px] p-3 shadow-sm">
+                        <span className="material-symbols-outlined text-[var(--color-tertiary)] mt-0.5" style={{ fontVariationSettings: "'FILL' 1" }}>local_parking</span>
+                        <div>
+                          <p className="text-label-mono text-[var(--color-tertiary)] font-bold uppercase tracking-wider text-xs mb-0.5">Parking Tip</p>
+                          <p className="text-sm text-[var(--color-on-surface)]">{day.parkingSuggestion}</p>
+                        </div>
                       </div>
                     )}
 
                     {/* Daily budget breakdown */}
                     {day.dailyBudget && (
-                      <div className="flex gap-4 text-xs text-gray-500 bg-gray-50 rounded p-2">
+                      <div className="flex gap-4 text-xs text-[var(--color-on-surface-variant)] bg-[var(--color-surface-container)] rounded p-2">
                         <span>Activities: &euro;{day.dailyBudget.activities}</span>
                         <span>Meals: &euro;{day.dailyBudget.meals}</span>
-                        <span className="font-medium text-gray-700">Total: &euro;{day.dailyBudget.total}</span>
+                        <span className="font-medium text-[var(--color-on-surface)]">Total: &euro;{day.dailyBudget.total}</span>
                       </div>
                     )}
 
@@ -701,29 +710,33 @@ export default function TripViewPage() {
                           <div key={i}>
                             {/* Transit indicator */}
                             {a.transitFromPrev && (
-                              <div className="flex items-center gap-2 py-1 pl-10 text-xs text-gray-400">
-                                <div className="flex-1 border-t border-dashed border-gray-200" />
-                                <span>&rarr; {a.transitFromPrev}</span>
-                                <div className="flex-1 border-t border-dashed border-gray-200" />
+                              <div className="flex items-center gap-4 py-2 pl-14">
+                                <div className="w-2 h-2 rounded-full bg-[var(--color-outline)]" />
+                                <div className="flex-1 border-t-2 border-dashed border-[var(--color-outline-variant)] relative">
+                                  <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-[var(--color-surface-container-lowest)] px-2 text-[var(--color-outline)] font-mono-accent text-xs flex items-center gap-1">
+                                    <span className="material-symbols-outlined text-[14px]">directions_walk</span>
+                                    {a.transitFromPrev}
+                                  </span>
+                                </div>
+                                <div className="w-2 h-2 rounded-full border-2 border-[var(--color-outline)]" />
                               </div>
                             )}
-                            <div className="flex gap-3 p-3 rounded-lg border hover:bg-gray-50">
-                              {/* Marker + emoji */}
-                              <div className="flex-shrink-0 flex flex-col items-center gap-1">
+                            <div className="flex gap-4 group/activity">
+                              {/* Timeline marker */}
+                              <div className="flex-shrink-0 flex flex-col items-center w-12 mt-2">
                                 <div
                                   style={{ backgroundColor: dayColor }}
-                                  className="w-7 h-7 rounded-full flex items-center justify-center text-white font-bold text-xs border-2 border-white shadow"
+                                  className="w-8 h-8 rounded-full flex items-center justify-center text-white font-mono-accent font-bold text-sm border-4 border-[var(--color-surface-container-lowest)] shadow-sm z-10"
                                   title={`Map marker ${markerNum}`}
                                 >
                                   {markerNum}
                                 </div>
-                                <span className="text-lg" title={a.type}>{TYPE_EMOJI[a.type] || '\u{1F4CD}'}</span>
                               </div>
                               {/* Content */}
-                              <div className="flex-1 min-w-0">
+                              <div className="flex-1 min-w-0 bg-white border border-[var(--color-surface-variant)] rounded-[12px] p-4 shadow-sm group-hover/activity:shadow-level-1 transition-shadow duration-200">
                                 <div className="flex items-baseline gap-2 flex-wrap">
-                                  <span className="text-sm font-mono text-blue-600">{a.time}</span>
-                                  <span className="font-semibold">{a.name}</span>
+                                  <span className="font-mono-accent text-sm text-[var(--color-primary)] bg-[var(--color-primary-fixed)] px-2 py-0.5 rounded">{a.time}</span>
+                                  <span className="font-heading font-bold">{a.name}</span>
                                   {a.duration && <Badge variant="outline">{a.duration}</Badge>}
                                   {a.estimatedCost && <Badge variant="secondary">{a.estimatedCost}</Badge>}
                                   {resBadge && (
@@ -732,36 +745,42 @@ export default function TripViewPage() {
                                     </span>
                                   )}
                                   {a.priority && a.priority >= 4 && (
-                                    <span className="text-xs text-yellow-600">{'★'.repeat(a.priority)}</span>
+                                    <span className="text-xs text-[var(--color-tertiary)]">{'★'.repeat(a.priority)}</span>
                                   )}
                                 </div>
-                                <p className="text-gray-700 mt-1 text-sm">{a.description}</p>
+                                <p className="text-[var(--color-on-surface)] mt-1 text-sm">{a.description}</p>
 
                                 {a.location && (
-                                  <p className="text-xs text-gray-500 mt-1">
+                                  <p className="text-xs text-[var(--color-on-surface-variant)] mt-1">
                                     &#x1F4CD; {a.location.name}{a.location.address ? ` \u00B7 ${a.location.address}` : ''}
                                   </p>
                                 )}
 
                                 {/* Info (opening hours) */}
                                 {a.info && (
-                                  <p className="text-xs text-gray-600 mt-1.5 bg-gray-50 p-2 rounded">
-                                    &#x1F552; {a.info}
-                                  </p>
+                                  <div className="text-xs mt-2 bg-[var(--color-surface-container)] border border-[var(--color-outline-variant)] rounded-[8px] p-3 flex gap-2 items-start">
+                                    <span className="material-symbols-outlined text-[var(--color-on-surface-variant)] text-[16px] mt-0.5">schedule</span>
+                                    <span className="text-[var(--color-on-surface-variant)]">{a.info}</span>
+                                  </div>
                                 )}
 
                                 {/* Tips */}
                                 {a.tips && (
-                                  <p className="text-xs text-blue-700 mt-1.5 bg-blue-50 p-2 rounded">
-                                    &#x1F4A1; {a.tips}
-                                  </p>
+                                  <div className="text-xs mt-2 bg-[rgba(225,224,255,0.3)] border border-[var(--color-primary-fixed)] rounded-[8px] p-3 flex gap-2 items-start">
+                                    <span className="material-symbols-outlined text-[var(--color-primary)] text-[16px] mt-0.5" style={{ fontVariationSettings: "'FILL' 1" }}>lightbulb</span>
+                                    <span className="text-[var(--color-on-surface)]">{a.tips}</span>
+                                  </div>
                                 )}
 
                                 {/* Rainy day alternative */}
                                 {a.isOutdoor && a.rainyDayAlternative && (
-                                  <p className="text-xs text-purple-700 mt-1.5 bg-purple-50 p-2 rounded">
-                                    &#x1F326;&#xFE0F; Rainy day backup: {a.rainyDayAlternative}
-                                  </p>
+                                  <div className="text-xs mt-2 bg-[var(--color-surface-container)] border border-[var(--color-outline-variant)] rounded-[8px] p-3 flex gap-2 items-start border-dashed">
+                                    <span className="material-symbols-outlined text-[var(--color-on-surface-variant)] text-[16px] mt-0.5">water_drop</span>
+                                    <div>
+                                      <span className="font-mono-accent text-[10px] text-[var(--color-on-surface-variant)] uppercase tracking-wider block mb-0.5">Weather Backup</span>
+                                      <span className="text-[var(--color-on-surface)]">{a.rainyDayAlternative}</span>
+                                    </div>
+                                  </div>
                                 )}
 
                                 {/* Action buttons */}
@@ -780,7 +799,7 @@ export default function TripViewPage() {
                                     <Button
                                       size="sm"
                                       variant="outline"
-                                      className="text-xs h-7 text-blue-600 border-blue-200"
+                                      className="text-xs h-7 text-[var(--color-primary)] border-[var(--color-primary-fixed)]"
                                       onClick={(e) => { e.stopPropagation(); setGuideOpen({ name: a.name, text: a.guideNarration! }); }}
                                     >
                                       &#x1F4D6; Read Guide
@@ -789,7 +808,7 @@ export default function TripViewPage() {
                                   <Button
                                     size="sm"
                                     variant="outline"
-                                    className="text-xs h-7 text-orange-600 border-orange-200"
+                                    className="text-xs h-7 text-[var(--color-secondary)] border-[var(--color-secondary-fixed)]"
                                     disabled={altLoading === `${itin.days.indexOf(day)}-${i}`}
                                     onClick={(e) => {
                                       e.stopPropagation();
@@ -804,7 +823,7 @@ export default function TripViewPage() {
                                   <Button
                                     size="sm"
                                     variant="outline"
-                                    className="text-xs h-7 text-teal-600 border-teal-200"
+                                    className="text-xs h-7 text-[var(--color-primary)] border-[var(--color-primary-fixed-dim)]"
                                     disabled={nearbyLoading === `${itin.days.indexOf(day)}-${i}`}
                                     onClick={(e) => {
                                       e.stopPropagation();
@@ -822,15 +841,17 @@ export default function TripViewPage() {
                                 {altSuggestion &&
                                   altSuggestion.dayIndex === itin.days.indexOf(day) &&
                                   altSuggestion.activityIndex === i && (
-                                  <div className="mt-3 p-3 rounded-lg border-2 border-orange-300 bg-orange-50 space-y-2">
-                                    <div className="flex items-center justify-between">
-                                      <h4 className="font-semibold text-orange-800 text-sm">
-                                        Suggested Alternative (Attempt {altSuggestion.attempt}/3)
-                                      </h4>
+                                  <div className="mt-3 p-4 rounded-[16px] border border-[var(--color-secondary)] bg-[var(--color-surface-container-lowest)] shadow-level-1 space-y-3 relative">
+                                    <div className="absolute -top-3 right-4 bg-[var(--color-surface-container-lowest)] px-2">
+                                      <span className="font-mono-accent text-[12px] text-[var(--color-secondary)] font-bold">{altSuggestion.attempt}/3 Suggestions</span>
                                     </div>
-                                    <div className="bg-white rounded p-3 border">
+                                    <h4 className="font-heading font-bold text-[var(--color-on-surface)] text-sm flex items-center gap-2">
+                                      <span className="material-symbols-outlined text-[var(--color-secondary)]">alt_route</span>
+                                      Alternative Suggestion
+                                    </h4>
+                                    <div className="bg-[var(--color-surface-container-low)] rounded-[12px] p-3 border border-[var(--color-surface-variant)]">
                                       <div className="flex items-baseline gap-2 flex-wrap">
-                                        <span className="text-sm font-mono text-blue-600">{altSuggestion.suggestion.time}</span>
+                                        <span className="text-sm font-mono text-[var(--color-primary)]">{altSuggestion.suggestion.time}</span>
                                         <span className="font-semibold">{altSuggestion.suggestion.name}</span>
                                         {altSuggestion.suggestion.duration && <Badge variant="outline">{altSuggestion.suggestion.duration}</Badge>}
                                         {altSuggestion.suggestion.estimatedCost && <Badge variant="secondary">{altSuggestion.suggestion.estimatedCost}</Badge>}
@@ -840,25 +861,25 @@ export default function TripViewPage() {
                                           </span>
                                         )}
                                       </div>
-                                      <p className="text-gray-700 mt-1 text-sm">{altSuggestion.suggestion.description}</p>
+                                      <p className="text-[var(--color-on-surface)] mt-1 text-sm">{altSuggestion.suggestion.description}</p>
                                       {altSuggestion.suggestion.whySuggested && (
-                                        <p className="text-xs text-orange-700 mt-1 italic">&#x1F4A1; {altSuggestion.suggestion.whySuggested}</p>
+                                        <p className="text-xs text-[var(--color-secondary)] mt-1 italic">&#x1F4A1; {altSuggestion.suggestion.whySuggested}</p>
                                       )}
                                       {altSuggestion.suggestion.info && (
-                                        <p className="text-xs text-gray-600 mt-1">&#x1F552; {altSuggestion.suggestion.info}</p>
+                                        <p className="text-xs text-[var(--color-on-surface-variant)] mt-1">&#x1F552; {altSuggestion.suggestion.info}</p>
                                       )}
                                       {altSuggestion.suggestion.tips && (
-                                        <p className="text-xs text-blue-700 mt-1">&#x1F4A1; {altSuggestion.suggestion.tips}</p>
+                                        <p className="text-xs text-[var(--color-primary)] mt-1">&#x1F4A1; {altSuggestion.suggestion.tips}</p>
                                       )}
                                     </div>
-                                    <div className="flex gap-2 mt-2">
+                                    <div className="flex gap-2">
                                       <Button
                                         size="sm"
-                                        className="bg-green-600 hover:bg-green-700 text-white text-xs"
+                                        className="bg-[var(--color-secondary)] text-white text-xs hover:opacity-90"
                                         onClick={(e) => { e.stopPropagation(); approveAlternative(); }}
                                         disabled={!!altLoading}
                                       >
-                                        {altLoading ? 'Applying...' : '&#x2705; Approve'}
+                                        {altLoading ? 'Applying...' : 'Approve'}
                                       </Button>
                                       <Button
                                         size="sm"
@@ -872,7 +893,7 @@ export default function TripViewPage() {
                                         <Button
                                           size="sm"
                                           variant="outline"
-                                          className="text-xs text-orange-600 border-orange-200"
+                                          className="text-xs text-[var(--color-secondary)] border-[var(--color-secondary-fixed)]"
                                           onClick={(e) => { e.stopPropagation(); reSuggestAlternative(); }}
                                           disabled={!!altLoading}
                                         >
@@ -887,33 +908,34 @@ export default function TripViewPage() {
                                 {nearbySuggestions &&
                                   nearbySuggestions.dayIndex === itin.days.indexOf(day) &&
                                   nearbySuggestions.activityIndex === i && (
-                                  <div className="mt-3 p-3 rounded-lg border-2 border-teal-300 bg-teal-50 space-y-2">
+                                  <div className="mt-3 p-4 rounded-[16px] bg-[rgba(192,193,255,0.2)] border border-[var(--color-primary-fixed-dim)] shadow-level-1 space-y-3">
                                     <div className="flex items-center justify-between">
-                                      <h4 className="font-semibold text-teal-800 text-sm">
-                                        &#x1F4CD; What&apos;s Nearby
+                                      <h4 className="font-heading font-bold text-[var(--color-on-surface)] text-sm flex items-center gap-2">
+                                        <span className="material-symbols-outlined text-[var(--color-primary)]">explore</span>
+                                        What&apos;s Nearby
                                       </h4>
                                       <button
                                         onClick={(e) => { e.stopPropagation(); setNearbySuggestions(null); }}
-                                        className="text-teal-500 text-xs hover:underline"
+                                        className="text-[var(--color-primary)] text-xs hover:underline"
                                       >
                                         Dismiss
                                       </button>
                                     </div>
                                     {nearbySuggestions.suggestions.map((ns, ni) => (
-                                      <div key={ni} className="bg-white rounded p-2 border flex items-start gap-2">
-                                        <span className="text-lg mt-0.5">
+                                      <div key={ni} className="bg-[var(--color-surface-container-lowest)] rounded-[12px] p-3 flex items-center gap-3">
+                                        <div className="w-10 h-10 rounded-full bg-[var(--color-surface-container)] flex items-center justify-center text-xl flex-shrink-0">
                                           {ns.type === 'cafe' ? '\u2615' : ns.type === 'shop' ? '\u{1F6CD}\uFE0F' : ns.type === 'viewpoint' ? '\u{1F304}' : ns.type === 'gallery' ? '\u{1F3A8}' : ns.type === 'park' ? '\u{1F333}' : ns.type === 'market' ? '\u{1F3EA}' : '\u{1F4CD}'}
-                                        </span>
+                                        </div>
                                         <div className="flex-1 min-w-0">
                                           <div className="flex items-baseline gap-2 flex-wrap">
                                             <span className="font-medium text-sm">{ns.name}</span>
-                                            <span className="text-xs text-gray-500">{ns.distance}</span>
+                                            <span className="text-xs text-[var(--color-on-surface-variant)]">{ns.distance}</span>
                                             {ns.estimatedCost && <Badge variant="secondary" className="text-xs">{ns.estimatedCost}</Badge>}
                                           </div>
-                                          <p className="text-xs text-gray-700">{ns.description}</p>
-                                          <p className="text-xs text-teal-700 italic mt-0.5">{ns.whyRelevant}</p>
+                                          <p className="text-xs text-[var(--color-on-surface)]">{ns.description}</p>
+                                          <p className="text-xs text-[var(--color-primary)] italic mt-0.5">{ns.whyRelevant}</p>
                                           {ns.location?.lat && ns.location?.lng && (
-                                            <a href={`https://www.google.com/maps/search/?api=1&query=${ns.location.lat},${ns.location.lng}`} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline">
+                                            <a href={`https://www.google.com/maps/search/?api=1&query=${ns.location.lat},${ns.location.lng}`} target="_blank" rel="noopener noreferrer" className="text-xs text-[var(--color-primary)] hover:underline">
                                               View on map &#x2197;
                                             </a>
                                           )}
@@ -930,9 +952,9 @@ export default function TripViewPage() {
                     </div>
 
                     {/* Day Notes */}
-                    <div className="mt-3 pt-3 border-t">
+                    <div className="mt-4 pt-4 border-t border-[var(--color-surface-variant)]">
                       <textarea
-                        className="w-full text-sm border rounded p-2 resize-none"
+                        className="w-full text-sm border border-[var(--color-outline)] rounded-[12px] bg-[var(--color-background)] p-3 resize-none focus:outline-none focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary-fixed)] transition-all"
                         rows={2}
                         placeholder="Add a personal note for this day..."
                         value={dayNotes[day.dayNumber] || ''}
@@ -956,7 +978,7 @@ export default function TripViewPage() {
             <CardContent>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {itin.localFinds.map((find, i) => (
-                  <div key={i} className="p-3 rounded border hover:bg-gray-50">
+                  <div key={i} className="p-4 rounded-[12px] bg-[var(--color-tertiary-fixed)] border border-[var(--color-tertiary-fixed-dim)] hover:shadow-level-1 transition-shadow">
                     <div className="flex items-center gap-2">
                       <span className="text-lg">{FIND_EMOJI[find.type] || '\u{1F4CD}'}</span>
                       <div>
@@ -964,11 +986,11 @@ export default function TripViewPage() {
                           <span className="font-medium text-sm">{find.name}</span>
                           {find.estimatedCost && <Badge variant="secondary" className="text-xs">{find.estimatedCost}</Badge>}
                         </div>
-                        <p className="text-xs text-gray-600">{find.description}</p>
+                        <p className="text-xs text-[var(--color-on-surface-variant)]">{find.description}</p>
                       </div>
                     </div>
                     {find.location?.lat && find.location?.lng && (
-                      <a href={`https://www.google.com/maps/search/?api=1&query=${find.location.lat},${find.location.lng}`} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline ml-7">
+                      <a href={`https://www.google.com/maps/search/?api=1&query=${find.location.lat},${find.location.lng}`} target="_blank" rel="noopener noreferrer" className="text-xs text-[var(--color-primary)] hover:underline ml-7">
                         View on map &#x2197;
                       </a>
                     )}
@@ -984,7 +1006,7 @@ export default function TripViewPage() {
           <Card>
             <CardHeader><CardTitle>Practical Tips</CardTitle></CardHeader>
             <CardContent>
-              <ul className="list-disc list-inside space-y-1 text-gray-700">
+              <ul className="list-disc list-inside space-y-1 text-[var(--color-on-surface)]">
                 {itin.practicalTips.map((t, i) => <li key={i}>{t}</li>)}
               </ul>
             </CardContent>
@@ -1004,14 +1026,19 @@ export default function TripViewPage() {
         <div className="fixed inset-0 z-50 flex justify-end" onClick={() => setGuideOpen(null)}>
           <div className="fixed inset-0 bg-black/30" />
           <div
-            className="relative w-full max-w-md bg-white shadow-xl overflow-y-auto"
+            className="relative w-full max-w-md bg-[var(--color-surface-container-lowest)] shadow-[-8px_0_24px_rgba(26,26,46,0.1)] border-l border-[var(--color-surface-variant)] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="sticky top-0 bg-white border-b p-4 flex items-center justify-between">
-              <h3 className="font-bold text-lg">{guideOpen.name}</h3>
-              <Button variant="ghost" size="sm" onClick={() => setGuideOpen(null)}>&#x2715;</Button>
+            <div className="sticky top-0 bg-[var(--color-surface-container)] border-b border-[var(--color-surface-variant)] p-4 flex items-center justify-between">
+              <h3 className="font-heading font-bold text-lg text-[var(--color-on-surface)] flex items-center gap-2">
+                <span className="material-symbols-outlined text-[var(--color-primary)]">headphones</span>
+                {guideOpen.name}
+              </h3>
+              <button onClick={() => setGuideOpen(null)} className="p-2 hover:bg-[var(--color-surface-variant)] rounded-full transition-colors text-[var(--color-outline)]">
+                <span className="material-symbols-outlined">close</span>
+              </button>
             </div>
-            <div className="p-6 prose prose-sm max-w-none">
+            <div className="p-6 text-body-lg leading-relaxed text-[var(--color-on-surface)]">
               {guideOpen.text.split('\n').map((p, i) => (
                 <p key={i}>{p}</p>
               ))}

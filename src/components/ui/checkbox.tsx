@@ -12,13 +12,13 @@ const Checkbox = React.forwardRef<HTMLInputElement, CheckboxProps>(
         ref={ref}
         type="checkbox"
         className={cn(
-          'h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-600 focus:ring-offset-0 cursor-pointer',
+          'h-4 w-4 rounded border-[var(--color-outline-variant)] text-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)] focus:ring-offset-0 cursor-pointer',
           className
         )}
         {...props}
       />
       {label && (
-        <label className="text-sm text-gray-700 cursor-pointer ml-2">
+        <label className="text-sm text-[var(--color-on-surface)] cursor-pointer ml-2">
           {label}
         </label>
       )}

@@ -113,7 +113,7 @@ export default function ProfileSetupPage() {
     return (
       <AppShell>
         <div className="flex items-center justify-center py-12">
-          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent"></div>
+          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-[var(--color-primary)] border-t-transparent"></div>
         </div>
       </AppShell>
     );
@@ -415,7 +415,7 @@ export default function ProfileSetupPage() {
   ];
 
   const SectionCard = ({ icon, title, children }: { icon: string; title: string; children: React.ReactNode }) => (
-    <Card className="border border-gray-200">
+    <Card className="border border-[var(--color-outline-variant)]">
       <CardHeader className="pb-3">
         <CardTitle className="text-lg flex items-center gap-2">
           <span className="text-2xl">{icon}</span>
@@ -440,9 +440,9 @@ export default function ProfileSetupPage() {
     helperText?: string;
   }) => (
     <div>
-      <label className="block text-sm font-medium text-gray-900 mb-2">{label}</label>
+      <label className="block text-label-mono text-[var(--color-on-surface)] mb-2">{label}</label>
       <Chip options={options} selectedValues={value} onChange={onChange} />
-      {helperText && <p className="text-xs text-gray-500 mt-2">{helperText}</p>}
+      {helperText && <p className="text-xs text-[var(--color-on-surface-variant)] mt-2">{helperText}</p>}
     </div>
   );
 
@@ -458,7 +458,7 @@ export default function ProfileSetupPage() {
     onChange: (val: string) => void;
   }) => (
     <div>
-      <label className="block text-sm font-medium text-gray-900 mb-2">{label}</label>
+      <label className="block text-label-mono text-[var(--color-on-surface)] mb-2">{label}</label>
       <div className="flex flex-wrap gap-2">
         {options.map((option) => (
           <button
@@ -466,8 +466,8 @@ export default function ProfileSetupPage() {
             onClick={() => onChange(option.value)}
             className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
               value === option.value
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-100 text-gray-900 border border-gray-300 hover:bg-gray-200'
+                ? 'bg-primary-gradient text-white shadow-level-1'
+                : 'bg-[var(--color-surface-container-low)] text-[var(--color-on-surface)] border border-[var(--color-outline-variant)] hover:bg-[var(--color-surface-container-high)]'
             }`}
           >
             {option.label}
@@ -489,12 +489,12 @@ export default function ProfileSetupPage() {
     placeholder: string;
   }) => (
     <div>
-      <label className="block text-sm font-medium text-gray-900 mb-2">{label}</label>
+      <label className="block text-label-mono text-[var(--color-on-surface)] mb-2">{label}</label>
       <textarea
         value={value || ''}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent resize-none"
+        className="w-full px-3 py-2 border border-[var(--color-outline)] rounded-[12px] text-sm text-[var(--color-on-surface)] placeholder-[var(--color-on-surface-variant)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-fixed)] focus:border-transparent resize-none"
         rows={3}
       />
     </div>
@@ -502,30 +502,30 @@ export default function ProfileSetupPage() {
 
   return (
     <AppShell>
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen" style={{ background: 'var(--color-background)' }}>
         <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
           {/* Header */}
           <div className="mb-8">
-            <h1 className="text-3xl font-bold tracking-tight text-gray-900">Travel Profile</h1>
-            <div className="mt-3 space-y-2 bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <p className="text-sm text-gray-800">
-                <span className="font-semibold">Why we ask:</span> Answer once and we'll tailor every trip to you. Everything is optional — skip what doesn't apply.
+            <h1 className="text-h2 text-[var(--color-on-surface)]">Travel Profile</h1>
+            <div className="mt-3 space-y-2 bg-[var(--color-primary-fixed)] border border-[var(--color-primary-fixed-dim)] rounded-[16px] p-4">
+              <p className="text-sm text-[var(--color-on-surface)]">
+                <span className="font-bold">Why we ask:</span> Answer once and we'll tailor every trip to you. Everything is optional — skip what doesn't apply.
               </p>
-              <p className="text-xs text-gray-600">You can edit these anytime.</p>
+              <p className="text-xs text-[var(--color-on-surface-variant)]">You can edit these anytime.</p>
             </div>
           </div>
 
           {/* Error message */}
           {error && (
-            <div className="mb-6 rounded-lg bg-red-50 p-4 border border-red-200">
-              <p className="text-sm text-red-800">{error}</p>
+            <div className="mb-6 rounded-[16px] bg-[var(--color-error-container)] p-4 border border-[var(--color-error)]">
+              <p className="text-sm text-[var(--color-on-error-container)]">{error}</p>
             </div>
           )}
 
           {/* Success message */}
           {showSuccess && (
-            <div className="mb-6 rounded-lg bg-green-50 p-4 border border-green-200">
-              <p className="text-sm text-green-800">Profile saved! Redirecting...</p>
+            <div className="mb-6 rounded-[16px] bg-[#bbf7d0] p-4 border border-[#166534]">
+              <p className="text-sm text-[#166534]">Profile saved! Redirecting...</p>
             </div>
           )}
 
@@ -786,7 +786,7 @@ export default function ProfileSetupPage() {
           </div>
 
           {/* Sticky Button Bar */}
-          <div className="sticky bottom-0 left-0 right-0 mt-8 pt-4 pb-4 bg-white border-t border-gray-200 flex gap-3 justify-center -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8">
+          <div className="sticky bottom-0 left-0 right-0 mt-8 pt-4 pb-4 bg-[var(--color-surface-container-lowest)] border-t border-[var(--color-surface-dim)] flex gap-3 justify-center -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8">
             <Button
               variant="outline"
               onClick={() => router.push('/')}
@@ -797,7 +797,7 @@ export default function ProfileSetupPage() {
             <Button
               onClick={handleSave}
               isLoading={saving}
-              className="bg-blue-600 hover:bg-blue-700"
+              className="bg-primary-gradient"
             >
               Save Profile
             </Button>

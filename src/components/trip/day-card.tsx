@@ -67,15 +67,15 @@ const DayCard: React.FC<DayCardProps> = ({
       {/* Header */}
       <button
         onClick={handleToggleExpand}
-        className="w-full text-left hover:bg-gray-50 transition-colors"
+        className="w-full text-left hover:bg-[var(--color-surface-container-low)] transition-colors"
       >
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3 flex-1">
-              <div className="text-2xl font-bold text-blue-600">Day {day.dayNumber}</div>
+              <div className="text-2xl font-bold text-[var(--color-primary)]">Day {day.dayNumber}</div>
               <div>
-                <p className="text-sm text-gray-600">{dateString}</p>
-                {day.theme && <p className="text-xs text-gray-500 italic">{day.theme}</p>}
+                <p className="text-sm text-[var(--color-on-surface-variant)]">{dateString}</p>
+                {day.theme && <p className="text-xs text-[var(--color-on-surface-variant)] italic">{day.theme}</p>}
               </div>
             </div>
 
@@ -84,7 +84,7 @@ const DayCard: React.FC<DayCardProps> = ({
                 <div className="text-center">
                   <div className="text-2xl">{weatherIcon}</div>
                   {weatherCondition && (
-                    <p className="text-xs text-gray-600">{weatherCondition}</p>
+                    <p className="text-xs text-[var(--color-on-surface-variant)]">{weatherCondition}</p>
                   )}
                 </div>
               )}
@@ -96,7 +96,7 @@ const DayCard: React.FC<DayCardProps> = ({
               )}
 
               <div className={`transform transition-transform ${isExpanded ? 'rotate-180' : ''}`}>
-                <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5 text-[var(--color-on-surface-variant)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
                 </svg>
               </div>
@@ -107,11 +107,11 @@ const DayCard: React.FC<DayCardProps> = ({
 
       {/* Expandable Content */}
       {isExpanded && (
-        <CardContent className="space-y-4 border-t border-gray-200 pt-4">
+        <CardContent className="space-y-4 border-t border-[var(--color-outline-variant)] pt-4">
           {/* Activities */}
           {activitiesJsx && (
             <div>
-              <h3 className="font-semibold text-gray-900 mb-3">Activities</h3>
+              <h3 className="font-semibold text-[var(--color-on-surface)] mb-3">Activities</h3>
               <div className="space-y-3">{activitiesJsx}</div>
             </div>
           )}
@@ -119,21 +119,21 @@ const DayCard: React.FC<DayCardProps> = ({
           {/* Meals */}
           {mealsJsx && (
             <div>
-              <h3 className="font-semibold text-gray-900 mb-3">Meals</h3>
+              <h3 className="font-semibold text-[var(--color-on-surface)] mb-3">Meals</h3>
               <div className="space-y-3">{mealsJsx}</div>
             </div>
           )}
 
           {/* Daily Budget */}
-          <div className="bg-gray-50 rounded-md p-3">
+          <div className="bg-[var(--color-surface-container-low)] rounded-md p-3">
             <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-700">Daily Budget</span>
+              <span className="text-sm text-[var(--color-on-surface)]">Daily Budget</span>
               <div className="text-right">
-                <p className={`text-lg font-bold ${isOverBudget ? 'text-red-600' : 'text-green-600'}`}>
+                <p className={`text-lg font-bold ${isOverBudget ? 'text-[var(--color-error)]' : 'text-[#166534]'}`}>
                   ${dailyBudget.toFixed(0)} / ${budgetTarget.toFixed(0)}
                 </p>
                 {isOverBudget && (
-                  <p className="text-xs text-red-600 mt-1">
+                  <p className="text-xs text-[var(--color-error)] mt-1">
                     +${(dailyBudget - budgetTarget).toFixed(0)} over
                   </p>
                 )}
@@ -143,14 +143,14 @@ const DayCard: React.FC<DayCardProps> = ({
 
           {/* Notes Textarea */}
           <div>
-            <label className="text-sm font-medium text-gray-900 block mb-2">
+            <label className="text-sm font-medium text-[var(--color-on-surface)] block mb-2">
               Day Notes
             </label>
             <textarea
               value={noteText}
               onChange={(e) => setNoteText(e.target.value)}
               placeholder="Add personal notes about this day..."
-              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent resize-none"
+              className="w-full px-3 py-2 border border-[var(--color-outline-variant)] rounded-md text-sm text-[var(--color-on-surface)] placeholder-[var(--color-on-surface-variant)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent resize-none"
               rows={3}
             />
             {noteText !== day.notes && (
@@ -166,7 +166,7 @@ const DayCard: React.FC<DayCardProps> = ({
           </div>
 
           {/* Action Buttons */}
-          <div className="flex flex-wrap gap-2 pt-2 border-t border-gray-200">
+          <div className="flex flex-wrap gap-2 pt-2 border-t border-[var(--color-outline-variant)]">
             {onRegenerate && (
               <Button
                 variant="outline"

@@ -54,7 +54,7 @@ const StepPreferences: React.FC<StepPreferencesProps> = ({
     <Card>
       <CardHeader>
         <CardTitle className="text-2xl">Trip Preferences</CardTitle>
-        <p className="text-sm text-gray-600 mt-2">
+        <p className="text-sm text-[var(--color-on-surface-variant)] mt-2">
           Tell us about your travel style and budget
         </p>
       </CardHeader>
@@ -62,7 +62,7 @@ const StepPreferences: React.FC<StepPreferencesProps> = ({
       <CardContent className="space-y-6">
         {/* Trip Type */}
         <div>
-          <label className="block text-sm font-medium text-gray-900 mb-2">
+          <label className="block text-sm font-medium text-[var(--color-on-surface)] mb-2">
             Trip Type
           </label>
           <div className="space-y-2">
@@ -77,13 +77,13 @@ const StepPreferences: React.FC<StepPreferencesProps> = ({
                 }
                 className={`w-full text-left p-3 rounded-lg border-2 transition-colors ${
                   preferences.tripType === option.value
-                    ? 'border-blue-600 bg-blue-50'
-                    : 'border-gray-200 hover:border-gray-300'
+                    ? 'border-[var(--color-primary)] bg-[var(--color-primary-fixed)]'
+                    : 'border-[var(--color-outline-variant)] hover:border-[var(--color-outline-variant)]'
                 }`}
               >
-                <p className="font-medium text-gray-900">{option.label}</p>
+                <p className="font-medium text-[var(--color-on-surface)]">{option.label}</p>
                 {preferences.tripType === option.value && (
-                  <p className="text-xs text-blue-600 mt-1">✓ Selected</p>
+                  <p className="text-xs text-[var(--color-primary)] mt-1">✓ Selected</p>
                 )}
               </button>
             ))}
@@ -92,7 +92,7 @@ const StepPreferences: React.FC<StepPreferencesProps> = ({
 
         {/* Hotel Preference */}
         <div>
-          <label className="block text-sm font-medium text-gray-900 mb-3">
+          <label className="block text-sm font-medium text-[var(--color-on-surface)] mb-3">
             Hotel Preference
           </label>
           <Chip
@@ -109,7 +109,7 @@ const StepPreferences: React.FC<StepPreferencesProps> = ({
 
         {/* Budget */}
         <div>
-          <label className="block text-sm font-medium text-gray-900 mb-3">
+          <label className="block text-sm font-medium text-[var(--color-on-surface)] mb-3">
             Budget Level
           </label>
           <Chip
@@ -126,7 +126,7 @@ const StepPreferences: React.FC<StepPreferencesProps> = ({
 
         {/* Currency */}
         <div>
-          <label className="block text-sm font-medium text-gray-900 mb-3">
+          <label className="block text-sm font-medium text-[var(--color-on-surface)] mb-3">
             Currency
           </label>
           <Chip
@@ -143,8 +143,8 @@ const StepPreferences: React.FC<StepPreferencesProps> = ({
 
         {/* Summary */}
         {isValid && (
-          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-            <p className="text-sm text-gray-900">
+          <div className="bg-[#bbf7d0] border border-[#166534] rounded-[12px] p-4">
+            <p className="text-sm text-[var(--color-on-surface)]">
               <span className="font-semibold">Ready to generate!</span>
               <br />
               {preferences.tripType && TRIP_TYPES[preferences.tripType].label}

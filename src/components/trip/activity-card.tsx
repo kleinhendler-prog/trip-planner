@@ -55,7 +55,7 @@ const ActivityCard: React.FC<ActivityCardProps> = ({
     <Card className="overflow-hidden">
       {/* Photo */}
       {photo && (
-        <div className="h-40 overflow-hidden bg-gray-200">
+        <div className="h-40 overflow-hidden bg-[var(--color-surface-container-high)]">
           <img
             src={photo}
             alt={activity.title}
@@ -104,20 +104,20 @@ const ActivityCard: React.FC<ActivityCardProps> = ({
       <CardContent className="space-y-4">
         {/* Description */}
         {activity.description && (
-          <p className="text-sm text-gray-700">{activity.description}</p>
+          <p className="text-sm text-[var(--color-on-surface)]">{activity.description}</p>
         )}
 
         {/* Special Notes */}
         {specialNotes && (
-          <div className="bg-yellow-50 border border-yellow-200 rounded-md p-3 flex gap-2">
+          <div className="bg-[#fef08a] border border-[#854d0e] rounded-md p-3 flex gap-2">
             <span className="text-lg">⚠️</span>
-            <p className="text-sm text-yellow-800">{specialNotes}</p>
+            <p className="text-sm text-[#854d0e]">{specialNotes}</p>
           </div>
         )}
 
         {/* Opening Hours */}
         {activity.startTime && (
-          <div className="text-sm text-gray-600">
+          <div className="text-sm text-[var(--color-on-surface-variant)]">
             <span className="font-medium">Time:</span> {activity.startTime}
             {activity.endTime && ` - ${activity.endTime}`}
           </div>
@@ -126,19 +126,19 @@ const ActivityCard: React.FC<ActivityCardProps> = ({
         {/* Local Tips */}
         {localTips.length > 0 && (
           <div className="space-y-2">
-            <p className="text-sm font-medium text-gray-900">Local Tips</p>
+            <p className="text-sm font-medium text-[var(--color-on-surface)]">Local Tips</p>
             {localTips.slice(0, 2).map((tip, idx) => (
               <div
                 key={idx}
-                className="bg-yellow-50 border border-yellow-200 rounded-md p-2 space-y-2"
+                className="bg-[#fef08a] border border-[#854d0e] rounded-md p-2 space-y-2"
               >
-                <p className="text-sm italic text-gray-800">{tip.text}</p>
+                <p className="text-sm italic text-[var(--color-on-surface)]">{tip.text}</p>
                 <div className="flex items-center justify-between">
                   <a
                     href={tip.sourceUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-xs text-blue-600 hover:underline"
+                    className="text-xs text-[var(--color-primary)] hover:underline"
                   >
                     {tip.source}
                   </a>
@@ -171,7 +171,7 @@ const ActivityCard: React.FC<ActivityCardProps> = ({
               href={activity.externalLinks.googleMaps}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-xs text-blue-600 hover:underline"
+              className="text-xs text-[var(--color-primary)] hover:underline"
             >
               Google Maps
             </a>

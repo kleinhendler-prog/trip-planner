@@ -34,10 +34,10 @@ const Chip = React.forwardRef<HTMLDivElement, ChipProps>(
               onClick={() => handleToggle(option.value)}
               disabled={disabled}
               className={cn(
-                'inline-flex items-center rounded-full px-3 py-1.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed',
+                'inline-flex items-center rounded-full px-4 py-2 text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed',
                 isSelected
-                  ? 'bg-blue-600 text-white focus-visible:ring-blue-600'
-                  : 'bg-gray-100 text-gray-900 border border-gray-300 hover:bg-gray-200 focus-visible:ring-gray-400'
+                  ? 'bg-[var(--color-primary-fixed-dim)] text-[var(--color-primary)] border border-[var(--color-primary)] focus-visible:ring-[var(--color-primary)]'
+                  : 'bg-[var(--color-surface)] text-[var(--color-on-surface)] border border-[var(--color-outline-variant)] hover:bg-[var(--color-surface-container-low)] focus-visible:ring-[var(--color-outline)]'
               )}
             >
               {option.label}

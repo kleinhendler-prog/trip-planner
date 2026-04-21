@@ -28,7 +28,7 @@ const Dialog = ({ open = false, onOpenChange, children }: DialogProps) => {
     <dialog
       ref={dialogRef}
       onCancel={handleCancel}
-      className="backdrop:bg-black/50 rounded-lg shadow-lg max-w-lg w-full max-h-[90vh] overflow-auto"
+      className="backdrop:bg-black/50 rounded-[16px] shadow-level-2 max-w-lg w-full max-h-[90vh] overflow-auto border border-[var(--color-surface-variant)]"
     >
       {children}
     </dialog>
@@ -86,7 +86,7 @@ const DialogTitle = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <h2
     ref={ref}
-    className={cn('text-lg font-semibold leading-none tracking-tight', className)}
+    className={cn('font-heading text-xl font-bold leading-none tracking-tight text-[var(--color-on-surface)]', className)}
     {...props}
   />
 ));
@@ -98,7 +98,7 @@ const DialogDescription = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <p
     ref={ref}
-    className={cn('text-sm text-gray-600', className)}
+    className={cn('text-sm text-[var(--color-on-surface-variant)]', className)}
     {...props}
   />
 ));
@@ -121,7 +121,7 @@ const DialogClose = React.forwardRef<HTMLButtonElement, DialogCloseProps>(
     <button
       ref={ref}
       className={cn(
-        'inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 h-10 px-4 py-2 text-gray-700 hover:bg-gray-100',
+        'inline-flex items-center justify-center rounded-full text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 h-10 px-4 py-2 text-[var(--color-on-surface-variant)] hover:bg-[var(--color-surface-variant)]',
         className
       )}
       {...props}

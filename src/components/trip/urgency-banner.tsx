@@ -44,14 +44,14 @@ const UrgencyBanner: React.FC<UrgencyBannerProps> = ({
   };
 
   return (
-    <div className="bg-red-50 border border-red-200 rounded-lg overflow-hidden">
+    <div className="bg-[var(--color-error-container)] border border-[var(--color-error)] rounded-[12px] overflow-hidden">
       {/* Header */}
-      <div className="bg-red-100 border-b border-red-200 px-4 py-3">
-        <h2 className="text-lg font-semibold text-red-900 flex items-center gap-2">
+      <div className="bg-[var(--color-error-container)] border-b border-[var(--color-error)] px-4 py-3">
+        <h2 className="text-lg font-semibold text-[var(--color-error)] flex items-center gap-2">
           <span className="text-2xl">⏰</span>
           Book These Soon
         </h2>
-        <p className="text-sm text-red-800 mt-1">
+        <p className="text-sm text-[var(--color-error)] mt-1">
           {items.length} item{items.length !== 1 ? 's' : ''} require immediate attention
         </p>
       </div>
@@ -69,12 +69,12 @@ const UrgencyBanner: React.FC<UrgencyBannerProps> = ({
           } as const;
 
           return (
-            <Card key={item.id} className={isBooked ? 'bg-green-50 border-green-200' : ''}>
+            <Card key={item.id} className={isBooked ? 'bg-[#bbf7d0] border-[#166534]' : ''}>
               <CardContent className="p-4">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1">
-                    <h3 className="font-semibold text-gray-900">{item.name}</h3>
-                    <p className="text-sm text-gray-600 mt-1">{item.urgencyReason}</p>
+                    <h3 className="font-semibold text-[var(--color-on-surface)]">{item.name}</h3>
+                    <p className="text-sm text-[var(--color-on-surface-variant)] mt-1">{item.urgencyReason}</p>
                     <div className="flex items-center gap-2 mt-2">
                       <Badge variant={urgencyColors[item.urgencyLevel as keyof typeof urgencyColors]}>
                         {'🔴'.repeat(item.urgencyLevel)}

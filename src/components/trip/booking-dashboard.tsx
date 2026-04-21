@@ -54,16 +54,16 @@ const BookingDashboard: React.FC<BookingDashboardProps> = ({
           {sortedItems.map((item) => (
             <div
               key={item.id}
-              className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors"
+              className="flex items-center justify-between p-3 bg-[var(--color-surface-container-low)] rounded-[12px] border border-[var(--color-outline-variant)] hover:bg-[var(--color-surface-container)] transition-colors"
             >
               <div className="flex items-center gap-3 flex-1 min-w-0">
                 <span className="text-xl">{typeIcons[item.type]}</span>
                 <div className="min-w-0">
-                  <p className="text-sm font-medium text-gray-900 truncate">
+                  <p className="text-sm font-medium text-[var(--color-on-surface)] truncate">
                     {item.name}
                   </p>
                   {item.date && (
-                    <p className="text-xs text-gray-500">{item.date}</p>
+                    <p className="text-xs text-[var(--color-on-surface-variant)]">{item.date}</p>
                   )}
                 </div>
               </div>
@@ -93,7 +93,7 @@ const BookingDashboard: React.FC<BookingDashboardProps> = ({
           ))}
         </div>
 
-        <p className="text-xs text-gray-500 mt-4">
+        <p className="text-xs text-[var(--color-on-surface-variant)] mt-4">
           📌 These items require immediate booking. Plan ahead for the best availability.
         </p>
       </CardContent>

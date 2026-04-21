@@ -13,7 +13,7 @@ const DatePicker = React.forwardRef<HTMLInputElement, DatePickerProps>(
     return (
       <div className="w-full">
         {label && (
-          <label className="block text-sm font-medium text-gray-900 mb-2">
+          <label className="block text-label-mono text-[var(--color-on-surface-variant)] mb-1.5">
             {label}
           </label>
         )}
@@ -23,8 +23,8 @@ const DatePicker = React.forwardRef<HTMLInputElement, DatePickerProps>(
           min={minDate}
           max={maxDate}
           className={cn(
-            'flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm placeholder:text-gray-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-500 disabled:border-gray-200',
-            error && 'border-red-500 focus-visible:ring-red-600',
+            'flex h-11 w-full rounded-[12px] border border-[var(--color-outline)] bg-[var(--color-background)] px-4 py-2.5 text-sm text-[var(--color-on-surface)] focus:outline-none focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary-fixed)] disabled:cursor-not-allowed disabled:bg-[var(--color-surface-variant)] disabled:text-[var(--color-outline)] cursor-pointer transition-all',
+            error && 'border-[var(--color-error)] focus:ring-[var(--color-error-container)]',
             className
           )}
           {...props}

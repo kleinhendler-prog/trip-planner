@@ -71,7 +71,7 @@ const StepDestination: React.FC<StepDestinationProps> = ({
       <CardContent className="space-y-6">
         {/* Destination Input */}
         <div>
-          <label className="block text-sm font-medium text-gray-900 mb-2">
+          <label className="block text-sm font-medium text-[var(--color-on-surface)] mb-2">
             Destination
           </label>
           <div className="relative">
@@ -86,15 +86,15 @@ const StepDestination: React.FC<StepDestinationProps> = ({
 
             {/* Autocomplete Suggestions */}
             {showSuggestions && filteredSuggestions.length > 0 && (
-              <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-md shadow-lg z-10">
+              <div className="absolute top-full left-0 right-0 mt-1 bg-[var(--color-surface-container-lowest)] border border-[var(--color-outline-variant)] rounded-md shadow-level-2 z-10">
                 {filteredSuggestions.map((suggestion) => (
                   <button
                     key={`${suggestion.name}-${suggestion.country}`}
                     onClick={() => handleSuggestionClick(suggestion)}
-                    className="w-full text-left px-4 py-2 hover:bg-gray-100 transition-colors border-b border-gray-200 last:border-b-0"
+                    className="w-full text-left px-4 py-2 hover:bg-[var(--color-surface-container)] transition-colors border-b border-[var(--color-outline-variant)] last:border-b-0"
                   >
-                    <span className="font-medium text-gray-900">{suggestion.name}</span>
-                    <span className="text-gray-600 ml-2">{suggestion.country}</span>
+                    <span className="font-medium text-[var(--color-on-surface)]">{suggestion.name}</span>
+                    <span className="text-[var(--color-on-surface-variant)] ml-2">{suggestion.country}</span>
                   </button>
                 ))}
               </div>
@@ -105,7 +105,7 @@ const StepDestination: React.FC<StepDestinationProps> = ({
         {/* Date Range */}
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-900 mb-2">
+            <label className="block text-sm font-medium text-[var(--color-on-surface)] mb-2">
               Start Date
             </label>
             <Input
@@ -117,7 +117,7 @@ const StepDestination: React.FC<StepDestinationProps> = ({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-900 mb-2">
+            <label className="block text-sm font-medium text-[var(--color-on-surface)] mb-2">
               End Date
             </label>
             <Input
@@ -131,8 +131,8 @@ const StepDestination: React.FC<StepDestinationProps> = ({
 
         {/* Trip Duration Summary */}
         {startDate && endDate && new Date(endDate) > new Date(startDate) && (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <p className="text-sm text-gray-900">
+          <div className="bg-[var(--color-primary-fixed)] border border-[var(--color-primary-fixed)] rounded-[12px] p-4">
+            <p className="text-sm text-[var(--color-on-surface)]">
               <span className="font-semibold">
                 {Math.ceil((new Date(endDate).getTime() - new Date(startDate).getTime()) / (1000 * 60 * 60 * 24))} days
               </span>
@@ -146,13 +146,13 @@ const StepDestination: React.FC<StepDestinationProps> = ({
 
         {/* Validation Messages */}
         {destination.length > 0 && (!startDate || !endDate) && (
-          <div className="text-sm text-orange-800 bg-orange-50 border border-orange-200 rounded-lg p-3">
+          <div className="text-sm text-[#854d0e] bg-[#fef08a] border border-[#854d0e] rounded-[12px] p-3">
             Please select both start and end dates.
           </div>
         )}
 
         {startDate && endDate && new Date(endDate) <= new Date(startDate) && (
-          <div className="text-sm text-red-800 bg-red-50 border border-red-200 rounded-lg p-3">
+          <div className="text-sm text-[var(--color-error)] bg-[var(--color-error-container)] border border-[var(--color-error)] rounded-[12px] p-3">
             End date must be after start date.
           </div>
         )}

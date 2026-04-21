@@ -276,22 +276,43 @@ export default function TripCreationPage() {
 
   return (
     <AppShell>
-      <div className="min-h-screen bg-gray-50 py-8">
+      <div className="min-h-screen py-8" style={{ background: 'var(--color-background)' }}>
         <div className="mx-auto max-w-2xl px-4 sm:px-6 lg:px-8">
-          {/* Progress */}
+          {/* Progress Steps */}
           <div className="mb-8">
-            <Progress value={progress} label={`Step ${currentStep} of ${STEPS.length}`} />
-            <div className="mt-4 flex justify-between">
+            <div className="flex justify-between items-center relative mb-3">
+              {/* Background line */}
+              <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-1 bg-[var(--color-surface-variant)] -z-10 rounded-full"></div>
+              {/* Active line */}
+              <div className="absolute left-0 top-1/2 -translate-y-1/2 h-1 bg-primary-gradient -z-10 rounded-full transition-all duration-500" style={{ width: `${((currentStep - 1) / (STEPS.length - 1)) * 100}%` }}></div>
+              {STEPS.map((step) => (
+                <div key={step.id} className="flex flex-col items-center gap-1 z-10">
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 ${
+                    step.id < currentStep
+                      ? 'bg-[var(--color-primary)] text-white'
+                      : step.id === currentStep
+                        ? 'bg-[var(--color-primary)] text-white shadow-level-2'
+                        : 'bg-white text-[var(--color-on-surface-variant)] border-2 border-[var(--color-surface-variant)]'
+                  }`}>
+                    {step.id < currentStep ? (
+                      <span className="material-symbols-outlined text-[14px]">check</span>
+                    ) : step.id}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="flex justify-between">
               {STEPS.map((step) => (
                 <div
                   key={step.id}
-                  className={`text-xs font-medium ${
+                  className={`text-xs font-medium text-center transition-colors ${
                     currentStep === step.id
-                      ? 'text-blue-600'
+                      ? 'text-[var(--color-primary)]'
                       : step.id < currentStep
-                        ? 'text-gray-600'
-                        : 'text-gray-400'
+                        ? 'text-[var(--color-on-surface-variant)]'
+                        : 'text-[var(--color-outline)]'
                   }`}
+                  style={{ width: `${100 / STEPS.length}%` }}
                 >
                   {step.title}
                 </div>
@@ -308,15 +329,15 @@ export default function TripCreationPage() {
               {currentStep === 1 && (
                 <div className="space-y-5">
                   <div>
-                    <label className="block text-sm font-medium text-gray-900 mb-2">
+                    <label className="block text-label-mono text-[var(--color-on-surface-variant)] mb-3">
                       What kind of trip is this?
                     </label>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                       {[
-                        { v: 'single_city' as const, emoji: '🏙️', label: 'Single city', desc: 'Stay in one place' },
-                        { v: 'area' as const, emoji: '🗺️', label: 'Region / area', desc: 'e.g., Tuscany' },
-                        { v: 'road_trip' as const, emoji: '🚗', label: 'Road trip', desc: 'Drive A to B' },
-                        { v: 'multi_segment' as const, emoji: '🔗', label: 'Multi-segment', desc: 'Chain trip types' },
+                        { v: 'single_city' as const, icon: 'location_city', label: 'Single city', desc: 'Stay in one place' },
+                        { v: 'area' as const, icon: 'map', label: 'Region / area', desc: 'e.g., Tuscany' },
+                        { v: 'road_trip' as const, icon: 'directions_car', label: 'Road trip', desc: 'Drive A to B' },
+                        { v: 'multi_segment' as const, icon: 'flight_takeoff', label: 'Multi-segment', desc: 'Chain trip types' },
                       ].map((opt) => (
                         <button
                           key={opt.v}
@@ -328,15 +349,15 @@ export default function TripCreationPage() {
                             }
                             setFormData({ ...formData, ...update });
                           }}
-                          className={`p-3 rounded-lg border-2 text-left transition-all ${
+                          className={`p-4 rounded-[16px] text-center transition-all duration-200 flex flex-col items-center justify-center gap-2 ${
                             formData.tripStyle === opt.v
-                              ? 'border-blue-500 bg-blue-50'
-                              : 'border-gray-200 hover:border-gray-300'
+                              ? 'border-2 border-[var(--color-primary)] bg-[rgba(192,193,255,0.2)] shadow-sm'
+                              : 'border border-[var(--color-outline-variant)] bg-[var(--color-surface)] hover:border-[var(--color-primary)] hover:bg-[var(--color-surface-container-low)]'
                           }`}
                         >
-                          <div className="text-xl mb-1">{opt.emoji}</div>
-                          <div className="font-semibold text-sm">{opt.label}</div>
-                          <div className="text-xs text-gray-600">{opt.desc}</div>
+                          <span className={`material-symbols-outlined text-3xl ${formData.tripStyle === opt.v ? 'text-[var(--color-primary)]' : 'text-[var(--color-on-surface-variant)]'}`} style={formData.tripStyle === opt.v ? { fontVariationSettings: "'FILL' 1" } : undefined}>{opt.icon}</span>
+                          <span className={`font-bold text-sm ${formData.tripStyle === opt.v ? 'text-[var(--color-primary)]' : 'text-[var(--color-on-surface)]'}`}>{opt.label}</span>
+                          <span className="text-xs text-[var(--color-on-surface-variant)]">{opt.desc}</span>
                         </button>
                       ))}
                     </div>
@@ -361,7 +382,7 @@ export default function TripCreationPage() {
                         onChange={(e) => setFormData({ ...formData, destination: e.target.value })}
                         error={!!errors.destination}
                       />
-                      <p className="text-xs text-gray-500 -mt-3">
+                      <p className="text-xs text-[var(--color-on-surface-variant)] -mt-3">
                         We&apos;ll propose 2-3 overnight bases so each day clusters around where you sleep.
                       </p>
                     </>
@@ -384,7 +405,7 @@ export default function TripCreationPage() {
                         error={!!errors.endPoint}
                       />
                       <div>
-                        <label className="block text-sm font-medium text-gray-900 mb-2">
+                        <label className="block text-label-mono text-[var(--color-on-surface-variant)] mb-1.5">
                           Max driving per day: {formData.maxDriveHours} hours
                         </label>
                         <input
@@ -396,7 +417,7 @@ export default function TripCreationPage() {
                           onChange={(e) => setFormData({ ...formData, maxDriveHours: parseInt(e.target.value) })}
                           className="w-full"
                         />
-                        <div className="flex justify-between text-xs text-gray-500">
+                        <div className="flex justify-between text-xs text-[var(--color-on-surface-variant)]">
                           <span>2h (scenic)</span>
                           <span>10h (long hauls)</span>
                         </div>
@@ -407,7 +428,7 @@ export default function TripCreationPage() {
                   {/* Multi-segment builder */}
                   {formData.tripStyle === 'multi_segment' && (
                     <div className="space-y-4">
-                      <p className="text-sm text-gray-600">
+                      <p className="text-sm text-[var(--color-on-surface-variant)]">
                         Chain multiple trip types together. Example: 3 days in Rome → road trip to Tuscany → 4 days exploring Tuscany.
                       </p>
 
@@ -418,14 +439,14 @@ export default function TripCreationPage() {
                           setFormData({ ...formData, segments: newSegs });
                         };
                         return (
-                          <div key={seg.id} className="p-4 border-2 border-gray-200 rounded-lg space-y-3 relative">
+                          <div key={seg.id} className="p-4 border border-[var(--color-surface-dim)] rounded-[16px] space-y-3 relative bg-[var(--color-surface-container-lowest)] shadow-sm">
                             <div className="flex items-center justify-between mb-1">
-                              <span className="text-sm font-bold text-gray-700">Segment {si + 1}</span>
+                              <span className="text-label-mono text-[var(--color-on-surface-variant)] font-bold">Segment {si + 1}</span>
                               {formData.segments.length > 1 && (
                                 <button
                                   type="button"
                                   onClick={() => setFormData({ ...formData, segments: formData.segments.filter((_, i) => i !== si) })}
-                                  className="text-red-500 text-xs hover:underline"
+                                  className="text-[var(--color-error)] text-xs hover:underline"
                                 >
                                   Remove
                                 </button>
@@ -442,8 +463,8 @@ export default function TripCreationPage() {
                                   key={opt.v}
                                   type="button"
                                   onClick={() => updateSeg({ type: opt.v })}
-                                  className={`py-1.5 px-2 rounded text-xs font-medium border transition-all ${
-                                    seg.type === opt.v ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 hover:border-gray-300'
+                                  className={`py-1.5 px-3 rounded-full text-xs font-medium border transition-all duration-200 ${
+                                    seg.type === opt.v ? 'border-[var(--color-primary)] bg-[var(--color-primary-fixed-dim)] text-[var(--color-primary)]' : 'border-[var(--color-outline-variant)] hover:border-[var(--color-primary)] hover:bg-[var(--color-surface-container-low)]'
                                   }`}
                                 >
                                   {opt.label}
@@ -496,7 +517,7 @@ export default function TripCreationPage() {
                             </div>
                             {seg.type === 'road_trip' && (
                               <div>
-                                <label className="block text-xs font-medium text-gray-700 mb-1">
+                                <label className="block text-xs font-medium text-[var(--color-on-surface-variant)] mb-1">
                                   Max driving/day: {seg.maxDriveHours}h
                                 </label>
                                 <input
@@ -527,9 +548,9 @@ export default function TripCreationPage() {
                         + Add Segment
                       </Button>
 
-                      {errors.segments && <p className="text-sm text-red-600">{errors.segments}</p>}
+                      {errors.segments && <p className="text-sm text-[var(--color-error)]">{errors.segments}</p>}
                       {Object.entries(errors).filter(([k]) => k.startsWith('seg')).map(([k, v]) => (
-                        <p key={k} className="text-sm text-red-600">{v}</p>
+                        <p key={k} className="text-sm text-[var(--color-error)]">{v}</p>
                       ))}
                     </div>
                   )}
@@ -554,11 +575,11 @@ export default function TripCreationPage() {
                     </>
                   )}
 
-                  {errors.destination && <p className="text-sm text-red-600">{errors.destination}</p>}
-                  {errors.startPoint && <p className="text-sm text-red-600">{errors.startPoint}</p>}
-                  {errors.endPoint && <p className="text-sm text-red-600">{errors.endPoint}</p>}
-                  {errors.startDate && <p className="text-sm text-red-600">{errors.startDate}</p>}
-                  {errors.endDate && <p className="text-sm text-red-600">{errors.endDate}</p>}
+                  {errors.destination && <p className="text-sm text-[var(--color-error)]">{errors.destination}</p>}
+                  {errors.startPoint && <p className="text-sm text-[var(--color-error)]">{errors.startPoint}</p>}
+                  {errors.endPoint && <p className="text-sm text-[var(--color-error)]">{errors.endPoint}</p>}
+                  {errors.startDate && <p className="text-sm text-[var(--color-error)]">{errors.startDate}</p>}
+                  {errors.endDate && <p className="text-sm text-[var(--color-error)]">{errors.endDate}</p>}
                 </div>
               )}
 
@@ -566,7 +587,7 @@ export default function TripCreationPage() {
               {currentStep === 2 && (
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-900 mb-2">
+                    <label className="block text-label-mono text-[var(--color-on-surface-variant)] mb-1.5">
                       Number of Adults (1-10)
                     </label>
                     <input
@@ -580,12 +601,12 @@ export default function TripCreationPage() {
                           adultsCount: Math.max(1, Math.min(10, parseInt(e.target.value) || 1)),
                         })
                       }
-                      className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm"
+                      className="flex h-11 w-full rounded-[12px] border border-[var(--color-outline)] bg-[var(--color-background)] px-4 py-2.5 text-sm text-[var(--color-on-surface)] focus:outline-none focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary-fixed)] transition-all"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-900 mb-2">
+                    <label className="block text-label-mono text-[var(--color-on-surface-variant)] mb-1.5">
                       Children Ages (0-17)
                     </label>
                     <div className="space-y-2">
@@ -601,7 +622,7 @@ export default function TripCreationPage() {
                               newAges[idx] = parseInt(e.target.value) || 0;
                               setFormData({ ...formData, childrenAges: newAges });
                             }}
-                            className="flex h-10 flex-1 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm"
+                            className="flex h-11 flex-1 rounded-[12px] border border-[var(--color-outline)] bg-[var(--color-background)] px-4 py-2.5 text-sm text-[var(--color-on-surface)] focus:outline-none focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary-fixed)] transition-all"
                             placeholder="Age"
                           />
                           <Button
@@ -637,7 +658,7 @@ export default function TripCreationPage() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-900 mb-2">
+                    <label className="block text-label-mono text-[var(--color-on-surface-variant)] mb-1.5">
                       About Your Group
                     </label>
                     <textarea
@@ -646,12 +667,12 @@ export default function TripCreationPage() {
                         setFormData({ ...formData, groupDescription: e.target.value })
                       }
                       placeholder="e.g., family trip with kids, romantic getaway, team building"
-                      className="flex min-h-24 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm"
+                      className="flex min-h-24 w-full rounded-[12px] border border-[var(--color-outline)] bg-[var(--color-background)] px-4 py-3 text-sm text-[var(--color-on-surface)] focus:outline-none focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary-fixed)] transition-all"
                     />
                   </div>
 
                   {errors.adultsCount && (
-                    <p className="text-sm text-red-600">{errors.adultsCount}</p>
+                    <p className="text-sm text-[var(--color-error)]">{errors.adultsCount}</p>
                   )}
                 </div>
               )}
@@ -660,7 +681,7 @@ export default function TripCreationPage() {
               {currentStep === 3 && (
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-900 mb-3">
+                    <label className="block text-sm font-medium text-[var(--color-on-surface)] mb-3">
                       What are you interested in?
                     </label>
                     <Chip
@@ -676,7 +697,7 @@ export default function TripCreationPage() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-900 mb-3">
+                    <label className="block text-sm font-medium text-[var(--color-on-surface)] mb-3">
                       What would you like to avoid?
                     </label>
                     <Chip
@@ -697,7 +718,7 @@ export default function TripCreationPage() {
                       setFormData({ ...formData, dislikesText: e.target.value })
                     }
                     placeholder="Any other dislikes or restrictions?"
-                    className="flex min-h-20 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm"
+                    className="flex min-h-20 w-full rounded-[12px] border border-[var(--color-outline)] bg-[var(--color-background)] px-4 py-3 text-sm text-[var(--color-on-surface)] focus:outline-none focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary-fixed)] transition-all"
                   />
                 </div>
               )}
@@ -766,10 +787,10 @@ export default function TripCreationPage() {
                   />
 
                   {errors.hotelPreference && (
-                    <p className="text-sm text-red-600">{errors.hotelPreference}</p>
+                    <p className="text-sm text-[var(--color-error)]">{errors.hotelPreference}</p>
                   )}
                   {errors.tripType && (
-                    <p className="text-sm text-red-600">{errors.tripType}</p>
+                    <p className="text-sm text-[var(--color-error)]">{errors.tripType}</p>
                   )}
                 </div>
               )}
@@ -777,10 +798,10 @@ export default function TripCreationPage() {
               {/* Step 5: Review */}
               {currentStep === 5 && (
                 <div className="space-y-4">
-                  <div className="grid gap-4 rounded-lg bg-gray-50 p-4">
+                  <div className="grid gap-4 rounded-[16px] bg-[var(--color-surface-container-low)] p-5 border border-[var(--color-surface-variant)]">
                     <div>
-                      <p className="text-xs font-semibold text-gray-600">DESTINATION</p>
-                      <p className="text-lg font-medium text-gray-900">
+                      <p className="text-label-mono text-[var(--color-outline)] uppercase tracking-wider text-xs">DESTINATION</p>
+                      <p className="text-lg font-heading font-bold text-[var(--color-on-surface)]">
                         {formData.tripStyle === 'multi_segment'
                           ? formData.segments.map(s => s.type === 'road_trip' ? `${s.startPoint} → ${s.endPoint}` : s.destination).join(' → ')
                           : formData.tripStyle === 'road_trip'
@@ -790,7 +811,7 @@ export default function TripCreationPage() {
                       {formData.tripStyle === 'multi_segment' && (
                         <div className="mt-2 space-y-1">
                           {formData.segments.map((s, i) => (
-                            <p key={i} className="text-xs text-gray-500">
+                            <p key={i} className="text-xs text-[var(--color-on-surface-variant)]">
                               Segment {i + 1}: {s.type === 'road_trip' ? `🚗 ${s.startPoint} → ${s.endPoint}` : s.type === 'area' ? `🗺️ ${s.destination}` : `🏙️ ${s.destination}`} ({s.startDate} → {s.endDate})
                             </p>
                           ))}
@@ -799,35 +820,35 @@ export default function TripCreationPage() {
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <p className="text-xs font-semibold text-gray-600">START DATE</p>
-                        <p className="text-sm font-medium text-gray-900">
+                        <p className="text-label-mono text-[var(--color-outline)] uppercase tracking-wider text-xs">START DATE</p>
+                        <p className="text-sm font-medium text-[var(--color-on-surface)]">
                           {formData.tripStyle === 'multi_segment' ? formData.segments[0]?.startDate : formData.startDate}
                         </p>
                       </div>
                       <div>
-                        <p className="text-xs font-semibold text-gray-600">END DATE</p>
-                        <p className="text-sm font-medium text-gray-900">
+                        <p className="text-label-mono text-[var(--color-outline)] uppercase tracking-wider text-xs">END DATE</p>
+                        <p className="text-sm font-medium text-[var(--color-on-surface)]">
                           {formData.tripStyle === 'multi_segment' ? formData.segments[formData.segments.length - 1]?.endDate : formData.endDate}
                         </p>
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <p className="text-xs font-semibold text-gray-600">TRAVELERS</p>
-                        <p className="text-sm font-medium text-gray-900">
+                        <p className="text-label-mono text-[var(--color-outline)] uppercase tracking-wider text-xs">TRAVELERS</p>
+                        <p className="text-sm font-medium text-[var(--color-on-surface)]">
                           {formData.adultsCount} adults
                           {formData.childrenAges.length > 0 && `, ${formData.childrenAges.length} children`}
                         </p>
                       </div>
                       <div>
-                        <p className="text-xs font-semibold text-gray-600">TRIP TYPE</p>
-                        <p className="text-sm font-medium text-gray-900">
+                        <p className="text-label-mono text-[var(--color-outline)] uppercase tracking-wider text-xs">TRIP TYPE</p>
+                        <p className="text-sm font-medium text-[var(--color-on-surface)]">
                           {TRIP_TYPES[formData.tripType].label}
                         </p>
                       </div>
                     </div>
                     <div>
-                      <p className="text-xs font-semibold text-gray-600 mb-2">INTERESTS</p>
+                      <p className="text-label-mono text-[var(--color-outline)] uppercase tracking-wider text-xs mb-2">INTERESTS</p>
                       <div className="flex flex-wrap gap-2">
                         {formData.interests.map((interest) => (
                           <Badge key={interest}>{INTERESTS[interest].label}</Badge>
@@ -837,15 +858,15 @@ export default function TripCreationPage() {
                   </div>
 
                   {errors.generation && (
-                    <div className="rounded-md bg-red-50 p-3">
-                      <p className="text-sm text-red-800">{errors.generation}</p>
+                    <div className="rounded-[12px] bg-[var(--color-error-container)] p-3">
+                      <p className="text-sm text-[var(--color-on-error-container)]">{errors.generation}</p>
                     </div>
                   )}
                 </div>
               )}
 
               {/* Navigation */}
-              <div className="flex gap-4 border-t pt-6">
+              <div className="flex gap-4 border-t border-[var(--color-surface-variant)] pt-6">
                 <Button
                   variant="outline"
                   onClick={handlePrev}
@@ -856,7 +877,7 @@ export default function TripCreationPage() {
                 {currentStep < STEPS.length ? (
                   <Button
                     onClick={handleNext}
-                    className="flex-1 bg-blue-600 hover:bg-blue-700"
+                    className="flex-1"
                     disabled={isGenerating}
                   >
                     Next
@@ -866,7 +887,7 @@ export default function TripCreationPage() {
                     onClick={handleGenerate}
                     isLoading={isGenerating}
                     disabled={isGenerating}
-                    className="flex-1 bg-green-600 hover:bg-green-700"
+                    className="flex-1"
                   >
                     {isGenerating ? 'Generating...' : 'Generate Itinerary'}
                   </Button>
@@ -889,8 +910,8 @@ export default function TripCreationPage() {
           {generationProgress && (
             <div className="space-y-4">
               <Progress value={generationProgress.progress} />
-              <div className="rounded-lg bg-gray-50 p-4">
-                <p className="text-sm font-medium text-gray-900">
+              <div className="rounded-[12px] bg-[var(--color-surface-container-low)] p-4 border border-[var(--color-surface-variant)]">
+                <p className="text-sm font-medium text-[var(--color-on-surface)]">
                   {generationProgress.currentStep
                     ? GENERATION_STEPS[generationProgress.currentStep]?.label ||
                       generationProgress.message

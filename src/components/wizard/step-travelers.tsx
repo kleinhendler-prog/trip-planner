@@ -76,11 +76,11 @@ const StepTravelers: React.FC<StepTravelersProps> = ({
       <CardContent className="space-y-6">
         {/* Adults */}
         <div>
-          <label className="block text-sm font-medium text-gray-900 mb-3">
+          <label className="block text-sm font-medium text-[var(--color-on-surface)] mb-3">
             Number of Adults
           </label>
           <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 border border-gray-300 rounded-lg p-1">
+            <div className="flex items-center gap-2 border border-[var(--color-outline-variant)] rounded-[12px] p-1">
               <button
                 onClick={() => handleAdultsChange(travelers.adults - 1)}
                 disabled={travelers.adults <= 1}
@@ -102,7 +102,7 @@ const StepTravelers: React.FC<StepTravelersProps> = ({
         {/* Children */}
         <div>
           <div className="flex items-center justify-between mb-3">
-            <label className="block text-sm font-medium text-gray-900">
+            <label className="block text-sm font-medium text-[var(--color-on-surface)]">
               Children (optional)
             </label>
             {travelers.children.length > 0 && (
@@ -123,10 +123,10 @@ const StepTravelers: React.FC<StepTravelersProps> = ({
                     placeholder="Age"
                     className="flex-1"
                   />
-                  <span className="text-sm text-gray-600">years old</span>
+                  <span className="text-sm text-[var(--color-on-surface-variant)]">years old</span>
                   <button
                     onClick={() => handleRemoveChild(index)}
-                    className="px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                    className="px-3 py-2 text-[var(--color-error)] hover:bg-[var(--color-error-container)] rounded-[12px] transition-colors"
                   >
                     ✕
                   </button>
@@ -146,21 +146,21 @@ const StepTravelers: React.FC<StepTravelersProps> = ({
 
         {/* Special Notes */}
         <div>
-          <label className="block text-sm font-medium text-gray-900 mb-2">
+          <label className="block text-sm font-medium text-[var(--color-on-surface)] mb-2">
             Special Notes (optional)
           </label>
           <textarea
             value={travelers.notes || ''}
             onChange={(e) => handleNotesChange(e.target.value)}
             placeholder="Mobility needs, dietary restrictions, language preferences, etc."
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent resize-none"
+            className="w-full px-3 py-2 border border-[var(--color-outline-variant)] rounded-[12px] text-sm text-[var(--color-on-surface)] placeholder-[var(--color-on-surface-variant)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent resize-none"
             rows={3}
           />
         </div>
 
         {/* Summary */}
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <p className="text-sm text-gray-900">
+        <div className="bg-[var(--color-primary-fixed)] border border-[var(--color-primary-fixed)] rounded-[12px] p-4">
+          <p className="text-sm text-[var(--color-on-surface)]">
             <span className="font-semibold">{totalTravelers}</span> traveler{totalTravelers !== 1 ? 's' : ''} total
             {travelers.children.length > 0 && (
               <>

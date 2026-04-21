@@ -114,8 +114,8 @@ export default function ReflectionPage() {
       <AppShell>
         <div className="flex items-center justify-center py-12">
           <div className="text-center">
-            <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent"></div>
-            <p className="mt-2 text-gray-600">Loading trip...</p>
+            <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-[var(--color-primary)] border-t-transparent"></div>
+            <p className="mt-2 text-[var(--color-on-surface-variant)]">Loading trip...</p>
           </div>
         </div>
       </AppShell>
@@ -128,7 +128,7 @@ export default function ReflectionPage() {
         <div className="flex items-center justify-center py-12">
           <Card className="w-full max-w-md">
             <CardContent className="pt-6">
-              <p className="text-center text-red-600">{error || 'Trip not found'}</p>
+              <p className="text-center text-[var(--color-error)]">{error || 'Trip not found'}</p>
               <Button
                 variant="outline"
                 className="mt-4 w-full"
@@ -151,21 +151,21 @@ export default function ReflectionPage() {
 
   return (
     <AppShell>
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-[var(--color-surface-container-low)]">
         <div className="mx-auto max-w-2xl px-4 py-8 sm:px-6 lg:px-8">
           {/* Header */}
           <div className="mb-8">
-            <h1 className="text-3xl font-bold tracking-tight text-gray-900">
+            <h1 className="text-3xl font-bold tracking-tight text-[var(--color-on-surface)]">
               Trip Reflection
             </h1>
-            <p className="mt-2 text-gray-600">
+            <p className="mt-2 text-[var(--color-on-surface-variant)]">
               Share your thoughts about your trip to {trip.destination}
             </p>
           </div>
 
           {error && (
-            <div className="mb-6 rounded-lg bg-red-50 p-4">
-              <p className="text-sm text-red-800">{error}</p>
+            <div className="mb-6 rounded-lg bg-[var(--color-error-container)] p-4">
+              <p className="text-sm text-[var(--color-error)]">{error}</p>
             </div>
           )}
 
@@ -179,7 +179,7 @@ export default function ReflectionPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-900 mb-3">
+                <label className="block text-sm font-medium text-[var(--color-on-surface)] mb-3">
                   Activities You Loved
                 </label>
                 <Chip
@@ -203,7 +203,7 @@ export default function ReflectionPage() {
                   })
                 }
                 placeholder="Tell us more about what made this trip special..."
-                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm min-h-32"
+                className="w-full rounded-md border border-[var(--color-outline-variant)] px-3 py-2 text-sm min-h-32"
               />
             </CardContent>
           </Card>
@@ -218,7 +218,7 @@ export default function ReflectionPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-900 mb-3">
+                <label className="block text-sm font-medium text-[var(--color-on-surface)] mb-3">
                   Activities or Experiences That Fell Short
                 </label>
                 <Chip
@@ -242,7 +242,7 @@ export default function ReflectionPage() {
                   })
                 }
                 placeholder="What could have been better? What should we have skipped?"
-                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm min-h-32"
+                className="w-full rounded-md border border-[var(--color-outline-variant)] px-3 py-2 text-sm min-h-32"
               />
             </CardContent>
           </Card>
@@ -265,7 +265,7 @@ export default function ReflectionPage() {
                   })
                 }
                 placeholder="Capture any special memories, tips for next time, or lessons learned..."
-                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm min-h-32"
+                className="w-full rounded-md border border-[var(--color-outline-variant)] px-3 py-2 text-sm min-h-32"
               />
             </CardContent>
           </Card>
@@ -297,11 +297,11 @@ export default function ReflectionPage() {
                         .flatMap((d) => d.activities)
                         .find((a) => a.id === activityId);
                       return (
-                        <div key={activityId} className="rounded-lg border border-gray-200 p-4">
-                          <p className="font-medium text-gray-900 mb-2">
+                        <div key={activityId} className="rounded-lg border border-[var(--color-outline-variant)] p-4">
+                          <p className="font-medium text-[var(--color-on-surface)] mb-2">
                             {activity?.title}
                           </p>
-                          <p className="text-sm text-gray-600 mb-3 italic">
+                          <p className="text-sm text-[var(--color-on-surface-variant)] mb-3 italic">
                             "{tipText}"
                           </p>
                           <div className="flex gap-2">
@@ -317,8 +317,8 @@ export default function ReflectionPage() {
                               }
                               className={`flex-1 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
                                 reflection.localTipsReview[activityId] === 'paid_off'
-                                  ? 'bg-green-100 text-green-800'
-                                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                  ? 'bg-[#bbf7d0] text-[#166534]'
+                                  : 'bg-[var(--color-surface-container)] text-[var(--color-on-surface)] hover:bg-[var(--color-surface-container-high)]'
                               }`}
                             >
                               Paid Off ✓
@@ -335,8 +335,8 @@ export default function ReflectionPage() {
                               }
                               className={`flex-1 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
                                 reflection.localTipsReview[activityId] === 'misleading'
-                                  ? 'bg-red-100 text-red-800'
-                                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                  ? 'bg-[var(--color-error-container)] text-[var(--color-error)]'
+                                  : 'bg-[var(--color-surface-container)] text-[var(--color-on-surface)] hover:bg-[var(--color-surface-container-high)]'
                               }`}
                             >
                               Misleading ✗
@@ -364,7 +364,7 @@ export default function ReflectionPage() {
               onClick={handleSubmit}
               isLoading={isSubmitting}
               disabled={isSubmitting}
-              className="flex-1 bg-green-600 hover:bg-green-700"
+              className="flex-1 bg-[#166534] hover:bg-[#166534]"
             >
               Submit Reflection
             </Button>
@@ -383,7 +383,7 @@ export default function ReflectionPage() {
           </DialogHeader>
           <div className="text-center py-4">
             <div className="text-5xl mb-2">🎉</div>
-            <p className="text-gray-600">Redirecting you back to your trip...</p>
+            <p className="text-[var(--color-on-surface-variant)]">Redirecting you back to your trip...</p>
           </div>
         </DialogContent>
       </Dialog>

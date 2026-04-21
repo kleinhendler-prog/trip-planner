@@ -139,8 +139,8 @@ export default function SourcesPage() {
       <AppShell>
         <div className="flex items-center justify-center py-12">
           <div className="text-center">
-            <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent"></div>
-            <p className="mt-2 text-gray-600">Loading sources...</p>
+            <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-[var(--color-primary)] border-t-transparent"></div>
+            <p className="mt-2 text-[var(--color-on-surface-variant)]">Loading sources...</p>
           </div>
         </div>
       </AppShell>
@@ -149,21 +149,21 @@ export default function SourcesPage() {
 
   return (
     <AppShell>
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-[var(--color-surface-container-low)]">
         <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
           {/* Header */}
           <div className="mb-8">
-            <h1 className="text-3xl font-bold tracking-tight text-gray-900">
+            <h1 className="text-3xl font-bold tracking-tight text-[var(--color-on-surface)]">
               Source Management
             </h1>
-            <p className="mt-2 text-gray-600">
+            <p className="mt-2 text-[var(--color-on-surface-variant)]">
               Manage destination information sources and trust ratings
             </p>
           </div>
 
           {error && (
-            <div className="mb-6 rounded-lg bg-red-50 p-4">
-              <p className="text-sm text-red-800">{error}</p>
+            <div className="mb-6 rounded-lg bg-[var(--color-error-container)] p-4">
+              <p className="text-sm text-[var(--color-error)]">{error}</p>
             </div>
           )}
 
@@ -220,46 +220,46 @@ export default function SourcesPage() {
             <CardContent className="p-0">
               {filteredSources.length === 0 ? (
                 <div className="py-12 text-center">
-                  <p className="text-gray-600">No sources found</p>
+                  <p className="text-[var(--color-on-surface-variant)]">No sources found</p>
                 </div>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full">
-                    <thead className="border-b border-gray-200 bg-gray-50">
+                    <thead className="border-b border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)]">
                       <tr>
-                        <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600">
+                        <th className="px-6 py-3 text-left text-xs font-semibold text-[var(--color-on-surface-variant)]">
                           Source Name
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600">
+                        <th className="px-6 py-3 text-left text-xs font-semibold text-[var(--color-on-surface-variant)]">
                           Destination
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600">
+                        <th className="px-6 py-3 text-left text-xs font-semibold text-[var(--color-on-surface-variant)]">
                           Audience
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600">
+                        <th className="px-6 py-3 text-left text-xs font-semibold text-[var(--color-on-surface-variant)]">
                           Trust Rating
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600">
+                        <th className="px-6 py-3 text-left text-xs font-semibold text-[var(--color-on-surface-variant)]">
                           Status
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600">
+                        <th className="px-6 py-3 text-left text-xs font-semibold text-[var(--color-on-surface-variant)]">
                           Actions
                         </th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-200">
+                    <tbody className="divide-y divide-[var(--color-outline-variant)]">
                       {filteredSources.map((source) => (
-                        <tr key={source.id} className="hover:bg-gray-50">
+                        <tr key={source.id} className="hover:bg-[var(--color-surface-container-low)]">
                           <td className="px-6 py-4">
                             <div>
-                              <p className="font-medium text-gray-900">{source.sourceName}</p>
-                              <p className="text-xs text-gray-600">{source.domain}</p>
+                              <p className="font-medium text-[var(--color-on-surface)]">{source.sourceName}</p>
+                              <p className="text-xs text-[var(--color-on-surface-variant)]">{source.domain}</p>
                             </div>
                           </td>
                           <td className="px-6 py-4">
                             <Badge variant="outline">{source.destinationKey}</Badge>
                           </td>
-                          <td className="px-6 py-4 capitalize text-sm text-gray-600">
+                          <td className="px-6 py-4 capitalize text-sm text-[var(--color-on-surface-variant)]">
                             {source.audienceType}
                           </td>
                           <td className="px-6 py-4">
@@ -272,8 +272,8 @@ export default function SourcesPage() {
                               onClick={() => handleToggleActive(source.id, source.active)}
                               className={`inline-flex px-3 py-1 rounded-full text-xs font-medium ${
                                 source.active
-                                  ? 'bg-green-100 text-green-800'
-                                  : 'bg-gray-100 text-gray-800'
+                                  ? 'bg-[#bbf7d0] text-[#166534]'
+                                  : 'bg-[var(--color-surface-container)] text-[var(--color-on-surface)]'
                               }`}
                             >
                               {source.active ? 'Active' : 'Inactive'}
