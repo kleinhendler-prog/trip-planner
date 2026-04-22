@@ -61,6 +61,7 @@ export interface LocalFind {
   description: string;
   location?: ActivityLocation;
   estimatedCost?: string;
+  dayNumber?: number; // Which day this find is near
 }
 
 export interface SimpleItinerary {
@@ -162,7 +163,11 @@ export interface TripSegment {
 
 /* ── Prompt Builder ─────────────────────────────────────── */
 
-function buildCriticalRules(currency: string): string {
+function buildCriticalRules(currency: string, daysUntilTrip: number): string {
+  const weatherRule = daysUntilTrip <= 14
+    ? `12. Include "climateNote": Since this trip is within 2 weeks, provide a SPECIFIC weather forecast. Include expected temperature range, chance of rain, and whether conditions are suitable for beach/outdoor activities. Be precise — e.g. "Expect 19-23°C with partly cloudy skies and light chance of rain. Good for outdoor walks but too cool for comfortable beach swimming."`
+    : `12. Include "climateNote": 1 sentence about typical weather for this destination during the trip dates.`;
+
   return `CRITICAL RULES:
 1. EVERY activity MUST have "location" with "lat" and "lng" (decimal degrees). No exceptions.
 2. EVERY activity MUST have "info" with opening hours and closure days. Account for holidays — NEVER schedule on closed days.
@@ -174,9 +179,16 @@ function buildCriticalRules(currency: string): string {
 8. REQUIRED/RECOMMENDED items should have "bookingUrl" if known (official site or constructed search URL).
 9. Tips must be ACTIONABLE PRE-VISIT advice. Scheduling and tips must be consistent.
 10. Include "dailyBudget" per day: {"activities": N, "meals": N, "total": N} as numbers in ${currency}.
-11. Include "localFinds": 5-10 local tastings, shops, markets, workshops, or beautiful streets worth exploring.
-12. Include "climateNote": 1 sentence about typical weather for this destination during the trip dates.
-13. For days involving DRIVING to a city/town, include "parkingSuggestion" on the day: name of a convenient parking spot with approximate cost and location.`;
+11. Include "localFinds": 2-3 local finds PER DAY, each with "dayNumber" matching the day they're near. These should be hidden gems near that day's activities — tastings, shops, markets, workshops, or beautiful streets the traveler can discover while already in the area.
+${weatherRule}
+13. For days involving DRIVING to a city/town, include "parkingSuggestion" on the day: name of a convenient parking spot with approximate cost and location.
+
+ACCURACY RULES (VERY IMPORTANT):
+14. ONLY suggest places that DEFINITELY EXIST and are WELL-ESTABLISHED. Never invent or guess venue names. If unsure whether a place exists, choose a different well-known venue instead.
+15. For restaurants and cafes: ONLY suggest places with an excellent reputation (would have 4.5+ stars on Google Maps). Prefer locally beloved spots over tourist traps. Use local food guides (TimeOut, local blogs, Secret guides) as mental references.
+16. Restaurant booking advice must reflect LOCAL customs. For example: Tel Aviv popular restaurants need 3-7 days advance booking, not 1-2 days. Rome trattorias may need 2 days. Research the local norms.
+17. Use locally-relevant sources and knowledge. For Israel: TimeOut Tel Aviv, Secret Tel Aviv, local food bloggers. For Italy: Gambero Rosso, local guides. Always prioritize authentic local knowledge over generic tourist recommendations.
+18. Venue names must be EXACT official names. Do not approximate or combine names. "Cafe Xenia" is wrong if the place is called "Cafe Jenia" or doesn't exist at all.`;
 }
 
 function buildJsonStructure(startDate: string, currency: string): string {
@@ -207,7 +219,7 @@ function buildJsonStructure(startDate: string, currency: string): string {
   "hotelRecommendations": [{"name": "Hotel Eden", "area": "Via Veneto", "priceRange": "€200-350", "why": "brief reason", "starRating": 5, "bookingUrl": "https://booking.com/search?ss=Hotel+Eden+Rome"}],
   "budgetEstimate": {"perDay": "${currency === 'EUR' ? '€' : '$'}X", "total": "${currency === 'EUR' ? '€' : '$'}Y", "breakdown": "summary", "activitiesTotal": 200, "mealsTotal": 300, "hotelsTotal": 1000},
   "practicalTips": ["3-4 tips"],
-  "localFinds": [{"name": "Supplizio", "type": "tasting", "description": "Best supplì in Rome", "location": {"name": "Supplizio", "lat": 41.8986, "lng": 12.4733}, "estimatedCost": "€5"}]
+  "localFinds": [{"name": "Supplizio", "type": "tasting", "description": "Best supplì in Rome", "location": {"name": "Supplizio", "lat": 41.8986, "lng": 12.4733}, "estimatedCost": "€5", "dayNumber": 1}]
 }
 
 5 activities per day. 2 hotel options. KEEP ALL STRINGS EXTREMELY SHORT (descriptions: max 10 words, tips: max 15 words, guideNarration: max 2 sentences, info: max 15 words). Every field listed above is REQUIRED — omitting any field is invalid.`;
@@ -229,6 +241,7 @@ function buildPrompt(trip: any, userProfile?: any): string {
   const days = nights + 1;
   const tripType = trip.trip_type || 'single_city';
   const currency = trip.currency || 'EUR';
+  const daysUntilTrip = Math.max(0, Math.ceil((new Date(trip.start_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24)));
 
   const travelerProfileSection = buildTravelerProfileSection(userProfile);
 
@@ -255,14 +268,17 @@ function buildPrompt(trip: any, userProfile?: any): string {
   }
 
   return `Create a ${days}-day itinerary for ${trip.destination} (${trip.start_date} to ${trip.end_date}).
+Today's date: ${new Date().toISOString().split('T')[0]}. Trip starts in ${daysUntilTrip} days.
 Travelers: ${profile.travelers || 2} · Type: ${profile.tripType || 'cultural'} · Hotel: ${prefs.hotelPreference || 'comfort'}
 Interests: ${interests} · Avoid: ${dislikes} · Currency: ${currency}
 ${tripContext ? '\n' + tripContext + '\n' : ''}
 ${travelerProfileSection}${tripSpecificSection}Use this detailed traveler profile to tailor venue choices, pacing, dining recommendations, and activity intensity. Trip-specific notes take priority over general profile preferences.
 
+IMPORTANT: Only recommend REAL, VERIFIED venues. Every restaurant, cafe, and attraction you suggest must be a well-known, established place that definitely exists. Use knowledge from local food/travel guides (TimeOut, Secret guides, local bloggers). Prefer places with excellent reputations (4.5+ star equivalent). Never guess or approximate venue names.
+
 Real venue names, geographic clustering. Concise descriptions (1 sentence max). Return ONLY valid JSON (no markdown).
 
-${buildCriticalRules(currency)}
+${buildCriticalRules(currency, daysUntilTrip)}
 
 ${buildJsonStructure(trip.start_date, currency)}`;
 }
@@ -290,6 +306,7 @@ function buildSegmentPrompt(
     )
   );
   const days = nights + 1;
+  const daysUntilTrip = Math.max(0, Math.ceil((new Date(segment.startDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24)));
   const travelerProfileSection = buildTravelerProfileSection(userProfile);
 
   let tripSpecificSection = '';
@@ -313,6 +330,7 @@ function buildSegmentPrompt(
   }
 
   return `Create a ${days}-day itinerary for SEGMENT ${segIdx + 1}/${totalSegments}: ${segment.destination} (${segment.startDate} to ${segment.endDate}).
+Today's date: ${new Date().toISOString().split('T')[0]}. Segment starts in ${daysUntilTrip} days.
 Travelers: ${profile.travelers || 2} · Type: ${profile.tripType || 'cultural'} · Hotel: ${prefs.hotelPreference || 'comfort'}
 Interests: ${interests} · Avoid: ${dislikes} · Currency: ${currency}
 
@@ -322,9 +340,11 @@ IMPORTANT: Day numbers start at ${dayOffset + 1} (continuing from previous segme
 
 ${travelerProfileSection}${tripSpecificSection}Use this detailed traveler profile to tailor venue choices, pacing, dining recommendations, and activity intensity. Trip-specific notes take priority over general profile preferences.
 
+IMPORTANT: Only recommend REAL, VERIFIED venues. Every restaurant, cafe, and attraction you suggest must be a well-known, established place that definitely exists. Use knowledge from local food/travel guides (TimeOut, Secret guides, local bloggers). Prefer places with excellent reputations (4.5+ star equivalent). Never guess or approximate venue names.
+
 Real venue names, geographic clustering. Concise descriptions (1 sentence max). Return ONLY valid JSON (no markdown).
 
-${buildCriticalRules(currency)}
+${buildCriticalRules(currency, daysUntilTrip)}
 
 ${buildJsonStructure(segment.startDate, currency)}`;
 }

@@ -135,7 +135,7 @@ export default function ItineraryMap({ days }: ItineraryMapProps) {
                 <div className="font-semibold">{m.name}</div>
                 <div className="text-xs text-[var(--color-on-surface-variant)]">Day {m.dayNumber} · {m.time}</div>
                 <a
-                  href={`https://www.google.com/maps/search/?api=1&query=${m.lat},${m.lng}`}
+                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(m.name)}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-xs text-[var(--color-primary)] hover:underline"

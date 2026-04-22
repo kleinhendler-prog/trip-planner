@@ -75,6 +75,7 @@ interface LocalFind {
   description: string;
   location?: ActivityLocation;
   estimatedCost?: string;
+  dayNumber?: number;
 }
 
 interface Itinerary {
@@ -567,9 +568,14 @@ export default function TripViewPage() {
                       <Button size="sm" className="bg-[var(--color-error)] hover:opacity-90 text-white">Book Now</Button>
                     </a>
                   ) : (
-                    <a href={`https://www.google.com/search?q=book+tickets+${encodeURIComponent(item.name)}+${encodeURIComponent(destination)}`} target="_blank" rel="noopener noreferrer">
-                      <Button size="sm" variant="outline">Search Tickets</Button>
-                    </a>
+                    <div className="flex gap-1.5">
+                      <a href={`https://www.getyourguide.com/s/?q=${encodeURIComponent(item.name + ' ' + destination)}`} target="_blank" rel="noopener noreferrer">
+                        <Button size="sm" variant="outline">GetYourGuide</Button>
+                      </a>
+                      <a href={`https://www.viator.com/searchResults/all?text=${encodeURIComponent(item.name + ' ' + destination)}`} target="_blank" rel="noopener noreferrer">
+                        <Button size="sm" variant="outline">Viator</Button>
+                      </a>
+                    </div>
                   )}
                 </div>
               ))}
@@ -763,7 +769,7 @@ export default function TripViewPage() {
                     {/* Segment label for multi-segment trips */}
                     {day.segmentLabel && (
                       <div className="flex items-center gap-2 mb-1">
-                        <Badge variant="outline" className="text-xs">&#x1F517; {day.segmentLabel}</Badge>
+                        <Badge variant="outline" className="text-xs">{'\u{1F517}'} {day.segmentLabel}</Badge>
                       </div>
                     )}
 
@@ -794,7 +800,16 @@ export default function TripViewPage() {
                     {/* Activities */}
                     <div className="space-y-2">
                       {day.activities.map((a, i) => {
-                        const markerNum = i + 1;
+                        // Compute marker number matching map logic (only activities with coordinates get numbers)
+                        let mapCounter = 0;
+                        let markerNum: number | null = null;
+                        for (let j = 0; j <= i; j++) {
+                          if (day.activities[j].location?.lat != null && day.activities[j].location?.lng != null) {
+                            mapCounter++;
+                            if (j === i) markerNum = mapCounter;
+                          }
+                        }
+                        const displayNum = markerNum ?? (i + 1); // fallback to index if no coordinates
                         const resBadge = a.reservationStatus ? RES_BADGE[a.reservationStatus] : null;
                         return (
                           <div key={i}>
@@ -817,9 +832,9 @@ export default function TripViewPage() {
                                 <div
                                   style={{ backgroundColor: dayColor }}
                                   className="w-8 h-8 rounded-full flex items-center justify-center text-white font-mono-accent font-bold text-sm border-4 border-[var(--color-surface-container-lowest)] shadow-sm z-10"
-                                  title={`Map marker ${markerNum}`}
+                                  title={`Map marker ${displayNum}`}
                                 >
-                                  {markerNum}
+                                  {displayNum}
                                 </div>
                               </div>
                               {/* Content */}
@@ -842,7 +857,7 @@ export default function TripViewPage() {
 
                                 {a.location && (
                                   <p className="text-xs text-[var(--color-on-surface-variant)] mt-1">
-                                    &#x1F4CD; {a.location.name}{a.location.address ? ` \u00B7 ${a.location.address}` : ''}
+                                    {'\u{1F4CD}'} {a.location.name}{a.location.address ? ` \u00B7 ${a.location.address}` : ''}
                                   </p>
                                 )}
 
@@ -875,8 +890,8 @@ export default function TripViewPage() {
 
                                 {/* Action buttons */}
                                 <div className="flex flex-wrap gap-2 mt-2">
-                                  {a.location?.lat && a.location?.lng && (
-                                    <a href={`https://www.google.com/maps/search/?api=1&query=${a.location.lat},${a.location.lng}`} target="_blank" rel="noopener noreferrer">
+                                  {a.location && (
+                                    <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(a.location.name + (a.location.address ? ', ' + a.location.address : ', ' + destination))}`} target="_blank" rel="noopener noreferrer">
                                       <Button size="sm" variant="ghost" className="text-xs h-7">Open in Maps</Button>
                                     </a>
                                   )}
@@ -892,7 +907,7 @@ export default function TripViewPage() {
                                       className="text-xs h-7 text-[var(--color-primary)] border-[var(--color-primary-fixed)]"
                                       onClick={(e) => { e.stopPropagation(); setGuideOpen({ name: a.name, text: a.guideNarration! }); }}
                                     >
-                                      &#x1F4D6; Read Guide
+                                      {'\u{1F4D6}'} Read Guide
                                     </Button>
                                   )}
                                   <Button
@@ -906,8 +921,8 @@ export default function TripViewPage() {
                                     }}
                                   >
                                     {altLoading === `${itin.days.indexOf(day)}-${i}` ? (
-                                      <span className="animate-spin inline-block mr-1">&#x21BB;</span>
-                                    ) : '&#x1F504; '}
+                                      <span className="animate-spin inline-block mr-1">{'\u21BB'}</span>
+                                    ) : '\u{1F504} '}
                                     Suggest Alternative
                                   </Button>
                                   <Button
@@ -921,8 +936,8 @@ export default function TripViewPage() {
                                     }}
                                   >
                                     {nearbyLoading === `${itin.days.indexOf(day)}-${i}` ? (
-                                      <span className="animate-spin inline-block mr-1">&#x21BB;</span>
-                                    ) : '&#x1F4CD; '}
+                                      <span className="animate-spin inline-block mr-1">{'\u21BB'}</span>
+                                    ) : '\u{1F4CD} '}
                                     What&apos;s Nearby
                                   </Button>
                                 </div>
@@ -953,13 +968,13 @@ export default function TripViewPage() {
                                       </div>
                                       <p className="text-[var(--color-on-surface)] mt-1 text-sm">{altSuggestion.suggestion.description}</p>
                                       {altSuggestion.suggestion.whySuggested && (
-                                        <p className="text-xs text-[var(--color-secondary)] mt-1 italic">&#x1F4A1; {altSuggestion.suggestion.whySuggested}</p>
+                                        <p className="text-xs text-[var(--color-secondary)] mt-1 italic">{'\u{1F4A1}'} {altSuggestion.suggestion.whySuggested}</p>
                                       )}
                                       {altSuggestion.suggestion.info && (
-                                        <p className="text-xs text-[var(--color-on-surface-variant)] mt-1">&#x1F552; {altSuggestion.suggestion.info}</p>
+                                        <p className="text-xs text-[var(--color-on-surface-variant)] mt-1">{'\u{1F552}'} {altSuggestion.suggestion.info}</p>
                                       )}
                                       {altSuggestion.suggestion.tips && (
-                                        <p className="text-xs text-[var(--color-primary)] mt-1">&#x1F4A1; {altSuggestion.suggestion.tips}</p>
+                                        <p className="text-xs text-[var(--color-primary)] mt-1">{'\u{1F4A1}'} {altSuggestion.suggestion.tips}</p>
                                       )}
                                     </div>
                                     <div className="flex gap-2">
@@ -977,7 +992,7 @@ export default function TripViewPage() {
                                         className="text-xs"
                                         onClick={(e) => { e.stopPropagation(); denyAlternative(); }}
                                       >
-                                        &#x274C; Deny
+                                        {'\u274C'} Deny
                                       </Button>
                                       {altSuggestion.attempt < 3 && (
                                         <Button
@@ -987,7 +1002,7 @@ export default function TripViewPage() {
                                           onClick={(e) => { e.stopPropagation(); reSuggestAlternative(); }}
                                           disabled={!!altLoading}
                                         >
-                                          &#x1F504; Re-suggest ({3 - altSuggestion.attempt} left)
+                                          {'\u{1F504}'} Re-suggest ({3 - altSuggestion.attempt} left)
                                         </Button>
                                       )}
                                     </div>
@@ -1024,9 +1039,9 @@ export default function TripViewPage() {
                                           </div>
                                           <p className="text-xs text-[var(--color-on-surface)]">{ns.description}</p>
                                           <p className="text-xs text-[var(--color-primary)] italic mt-0.5">{ns.whyRelevant}</p>
-                                          {ns.location?.lat && ns.location?.lng && (
-                                            <a href={`https://www.google.com/maps/search/?api=1&query=${ns.location.lat},${ns.location.lng}`} target="_blank" rel="noopener noreferrer" className="text-xs text-[var(--color-primary)] hover:underline">
-                                              View on map &#x2197;
+                                          {ns.name && (
+                                            <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(ns.name + ', ' + destination)}`} target="_blank" rel="noopener noreferrer" className="text-xs text-[var(--color-primary)] hover:underline">
+                                              View on map {'\u2197'}
                                             </a>
                                           )}
                                         </div>
@@ -1040,6 +1055,39 @@ export default function TripViewPage() {
                         );
                       })}
                     </div>
+
+                    {/* Day-specific Local Finds */}
+                    {itin.localFinds && (() => {
+                      const dayFinds = itin.localFinds!.filter(f => f.dayNumber === day.dayNumber);
+                      if (dayFinds.length === 0) return null;
+                      return (
+                        <div className="mt-3 p-4 rounded-[16px] bg-[var(--color-tertiary-fixed)] border border-[var(--color-tertiary-fixed-dim)]">
+                          <h4 className="font-heading font-bold text-sm text-[var(--color-on-surface)] flex items-center gap-2 mb-3">
+                            <span className="material-symbols-outlined text-[var(--color-tertiary)]">explore_nearby</span>
+                            While You&apos;re in the Area
+                          </h4>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            {dayFinds.map((find, fi) => (
+                              <div key={fi} className="flex items-start gap-2 bg-white/60 rounded-[12px] p-3">
+                                <span className="text-lg">{FIND_EMOJI[find.type] || '\u{1F4CD}'}</span>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-medium text-sm">{find.name}</span>
+                                    {find.estimatedCost && <Badge variant="secondary" className="text-xs">{find.estimatedCost}</Badge>}
+                                  </div>
+                                  <p className="text-xs text-[var(--color-on-surface-variant)]">{find.description}</p>
+                                  {find.name && (
+                                    <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(find.name + ', ' + destination)}`} target="_blank" rel="noopener noreferrer" className="text-xs text-[var(--color-primary)] hover:underline">
+                                      View on map {'\u2197'}
+                                    </a>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })()}
 
                     {/* Day Notes */}
                     <div className="mt-4 pt-4 border-t border-[var(--color-surface-variant)]">
@@ -1058,8 +1106,8 @@ export default function TripViewPage() {
           })}
         </div>
 
-        {/* Local Finds: Special Tastings, Shops & Experiences */}
-        {itin.localFinds && itin.localFinds.length > 0 && (
+        {/* Local Finds without day assignment (fallback for legacy data) */}
+        {itin.localFinds && itin.localFinds.filter(f => !f.dayNumber).length > 0 && (
           <Card>
             <CardHeader>
               <CardTitle>Local Finds &amp; Special Tastings</CardTitle>
@@ -1067,7 +1115,7 @@ export default function TripViewPage() {
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {itin.localFinds.map((find, i) => (
+                {itin.localFinds!.filter(f => !f.dayNumber).map((find, i) => (
                   <div key={i} className="p-4 rounded-[12px] bg-[var(--color-tertiary-fixed)] border border-[var(--color-tertiary-fixed-dim)] hover:shadow-level-1 transition-shadow">
                     <div className="flex items-center gap-2">
                       <span className="text-lg">{FIND_EMOJI[find.type] || '\u{1F4CD}'}</span>
@@ -1079,9 +1127,9 @@ export default function TripViewPage() {
                         <p className="text-xs text-[var(--color-on-surface-variant)]">{find.description}</p>
                       </div>
                     </div>
-                    {find.location?.lat && find.location?.lng && (
-                      <a href={`https://www.google.com/maps/search/?api=1&query=${find.location.lat},${find.location.lng}`} target="_blank" rel="noopener noreferrer" className="text-xs text-[var(--color-primary)] hover:underline ml-7">
-                        View on map &#x2197;
+                    {find.name && (
+                      <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(find.name + ', ' + destination)}`} target="_blank" rel="noopener noreferrer" className="text-xs text-[var(--color-primary)] hover:underline ml-7">
+                        View on map {'\u2197'}
                       </a>
                     )}
                   </div>
@@ -1106,7 +1154,7 @@ export default function TripViewPage() {
         {/* Post-trip Reflection Link */}
         <div className="text-center py-4">
           <Button variant="ghost" onClick={() => router.push(`/trips/${tripId}/reflect`)}>
-            How was this trip? Leave feedback &#x2192;
+            How was this trip? Leave feedback {'\u2192'}
           </Button>
         </div>
       </div>
