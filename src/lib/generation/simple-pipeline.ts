@@ -210,7 +210,7 @@ function buildJsonStructure(startDate: string, currency: string): string {
   "localFinds": [{"name": "Supplizio", "type": "tasting", "description": "Best supplì in Rome", "location": {"name": "Supplizio", "lat": 41.8986, "lng": 12.4733}, "estimatedCost": "€5"}]
 }
 
-5 activities per day. 2 hotel options. Keep strings SHORT. Every field listed above is REQUIRED — omitting any field is invalid.`;
+5 activities per day. 2 hotel options. KEEP ALL STRINGS EXTREMELY SHORT (descriptions: max 10 words, tips: max 15 words, guideNarration: max 2 sentences, info: max 15 words). Every field listed above is REQUIRED — omitting any field is invalid.`;
 }
 
 function buildPrompt(trip: any, userProfile?: any): string {
@@ -335,7 +335,7 @@ ${buildJsonStructure(segment.startDate, currency)}`;
 async function generateSingleItinerary(trip: any, userProfile: any): Promise<SimpleItinerary> {
   const prompt = buildPrompt(trip, userProfile);
   return callClaudeJSON<SimpleItinerary>(prompt, {
-    maxTokens: 12000,
+    maxTokens: 16000,
     temperature: 0.5,
   });
 }
@@ -364,7 +364,7 @@ async function generateMultiSegmentItinerary(
     console.log(`[Multi-Segment] Generating segment ${i + 1}/${segments.length}: ${seg.destination} (${seg.type})`);
 
     const segResult = await callClaudeJSON<SimpleItinerary>(prompt, {
-      maxTokens: 12000,
+      maxTokens: 16000,
       temperature: 0.5,
     });
 
