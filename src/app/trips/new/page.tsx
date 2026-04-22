@@ -280,43 +280,37 @@ export default function TripCreationPage() {
         <div className="mx-auto max-w-2xl px-4 sm:px-6 lg:px-8">
           {/* Progress Steps */}
           <div className="mb-8">
-            <div className="flex justify-between items-center relative mb-3">
+            <div className="relative">
               {/* Background line */}
-              <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-1 bg-[var(--color-surface-variant)] -z-10 rounded-full"></div>
+              <div className="absolute left-0 right-0 top-4 h-1 bg-[var(--color-surface-variant)] rounded-full"></div>
               {/* Active line */}
-              <div className="absolute left-0 top-1/2 -translate-y-1/2 h-1 bg-primary-gradient -z-10 rounded-full transition-all duration-500" style={{ width: `${((currentStep - 1) / (STEPS.length - 1)) * 100}%` }}></div>
-              {STEPS.map((step) => (
-                <div key={step.id} className="flex flex-col items-center gap-1 z-10">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 ${
-                    step.id < currentStep
-                      ? 'bg-[var(--color-primary)] text-white'
-                      : step.id === currentStep
-                        ? 'bg-[var(--color-primary)] text-white shadow-level-2'
-                        : 'bg-white text-[var(--color-on-surface-variant)] border-2 border-[var(--color-surface-variant)]'
-                  }`}>
-                    {step.id < currentStep ? (
-                      <span className="material-symbols-outlined text-[14px]">check</span>
-                    ) : step.id}
+              <div className="absolute left-0 top-4 h-1 bg-primary-gradient rounded-full transition-all duration-500" style={{ width: `${((currentStep - 1) / (STEPS.length - 1)) * 100}%` }}></div>
+              <div className="relative flex justify-between">
+                {STEPS.map((step) => (
+                  <div key={step.id} className="flex flex-col items-center z-10" style={{ width: `${100 / STEPS.length}%` }}>
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 ${
+                      step.id < currentStep
+                        ? 'bg-[var(--color-primary)] text-white'
+                        : step.id === currentStep
+                          ? 'bg-[var(--color-primary)] text-white shadow-level-2'
+                          : 'bg-white text-[var(--color-on-surface-variant)] border-2 border-[var(--color-surface-variant)]'
+                    }`}>
+                      {step.id < currentStep ? (
+                        <span className="material-symbols-outlined text-[14px]">check</span>
+                      ) : step.id}
+                    </div>
+                    <span className={`text-xs font-medium text-center mt-2 transition-colors ${
+                      currentStep === step.id
+                        ? 'text-[var(--color-primary)]'
+                        : step.id < currentStep
+                          ? 'text-[var(--color-on-surface-variant)]'
+                          : 'text-[var(--color-outline)]'
+                    }`}>
+                      {step.title}
+                    </span>
                   </div>
-                </div>
-              ))}
-            </div>
-            <div className="flex justify-between">
-              {STEPS.map((step) => (
-                <div
-                  key={step.id}
-                  className={`text-xs font-medium text-center transition-colors ${
-                    currentStep === step.id
-                      ? 'text-[var(--color-primary)]'
-                      : step.id < currentStep
-                        ? 'text-[var(--color-on-surface-variant)]'
-                        : 'text-[var(--color-outline)]'
-                  }`}
-                  style={{ width: `${100 / STEPS.length}%` }}
-                >
-                  {step.title}
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           </div>
 
