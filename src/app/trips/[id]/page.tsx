@@ -104,6 +104,8 @@ interface TripRecord {
   profile: any;
   itinerary: Itinerary | null;
   currency: string;
+  generation_started_at?: string;
+  generation_log?: Array<{ t: string; msg: string }>;
 }
 
 /* ── Constants ──────────────────────────────────────────── */
@@ -391,6 +393,7 @@ export default function TripViewPage() {
     const mins = Math.floor(generationElapsed / 60);
     const secs = generationElapsed % 60;
     const timeStr = mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
+    const logEntries = trip.generation_log || [];
 
     return (
       <AppShell>
@@ -408,6 +411,37 @@ export default function TripViewPage() {
                 <p className="text-sm text-[var(--color-on-surface-variant)]">This page will refresh automatically when your itinerary is ready.</p>
                 <span className="text-label-mono text-xs text-[var(--color-outline)]">{timeStr}</span>
               </div>
+
+              {/* Live Status Log */}
+              {logEntries.length > 0 && (
+                <div className="rounded-[12px] bg-[var(--color-surface-container-low)] border border-[var(--color-outline-variant)] p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="material-symbols-outlined text-[16px] text-[var(--color-primary)]">terminal</span>
+                    <span className="text-xs font-bold text-[var(--color-on-surface)] uppercase tracking-wide">Live Status</span>
+                  </div>
+                  <div className="space-y-1.5 max-h-48 overflow-y-auto">
+                    {logEntries.map((entry, i) => {
+                      const isLatest = i === logEntries.length - 1;
+                      const time = new Date(entry.t);
+                      const timeLabel = `${time.getHours().toString().padStart(2, '0')}:${time.getMinutes().toString().padStart(2, '0')}:${time.getSeconds().toString().padStart(2, '0')}`;
+                      return (
+                        <div key={i} className={`flex items-start gap-2 ${isLatest ? '' : 'opacity-60'}`}>
+                          {isLatest ? (
+                            <div className="w-2 h-2 mt-1.5 rounded-full bg-[var(--color-primary)] animate-pulse shrink-0" />
+                          ) : (
+                            <span className="material-symbols-outlined text-[12px] text-[var(--color-primary)] mt-0.5 shrink-0">check_circle</span>
+                          )}
+                          <span className="text-label-mono text-[10px] text-[var(--color-outline)] mt-0.5 shrink-0">{timeLabel}</span>
+                          <span className={`text-xs ${isLatest ? 'text-[var(--color-on-surface)] font-medium' : 'text-[var(--color-on-surface-variant)]'}`}>
+                            {entry.msg}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
               {generationElapsed > 90 && (
                 <div className="rounded-[12px] bg-[var(--color-surface-container)] p-3 flex items-start gap-2">
                   <span className="material-symbols-outlined text-[var(--color-tertiary)] text-[18px] mt-0.5">hourglass_top</span>

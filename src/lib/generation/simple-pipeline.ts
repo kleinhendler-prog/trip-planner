@@ -416,8 +416,32 @@ async function generateMultiSegmentItinerary(
   };
 }
 
+/** Append a log entry to the trip's generation_log column */
+async function appendLog(tripId: string, message: string) {
+  const entry = { t: new Date().toISOString(), msg: message };
+  console.log(`[Gen ${tripId}] ${message}`);
+  try {
+    await (supabase as any).rpc('append_generation_log', { trip_id: tripId, entry: JSON.stringify(entry) }).catch(() => {
+      // Fallback: read-modify-write if RPC doesn't exist
+      return (supabase as any)
+        .from('trips')
+        .select('generation_log')
+        .eq('id', tripId)
+        .single()
+        .then(({ data }: any) => {
+          const log = Array.isArray(data?.generation_log) ? data.generation_log : [];
+          log.push(entry);
+          return (supabase as any).from('trips').update({ generation_log: log }).eq('id', tripId);
+        });
+    });
+  } catch {
+    // Non-critical — don't let logging failures break generation
+  }
+}
+
 export async function generateTripItinerary(tripId: string): Promise<SimpleItinerary> {
   // Fetch trip
+  await appendLog(tripId, 'Starting generation — fetching trip data');
   const { data: trip, error } = await (supabase as any)
     .from('trips')
     .select('*')
@@ -426,7 +450,8 @@ export async function generateTripItinerary(tripId: string): Promise<SimpleItine
 
   if (error || !trip) throw new Error('Trip not found');
 
-  // Record job start
+  // Clear previous log and record job start
+  await (supabase as any).from('trips').update({ generation_log: [] }).eq('id', tripId);
   await (supabase as any).from('generation_jobs').insert({
     trip_id: tripId,
     step: 'generating_itinerary',
@@ -435,6 +460,7 @@ export async function generateTripItinerary(tripId: string): Promise<SimpleItine
 
   try {
     // Fetch user profile
+    await appendLog(tripId, 'Loading your travel profile');
     const { data: profileRow } = await (supabase as any)
       .from('user_profiles')
       .select('profile')
@@ -442,18 +468,33 @@ export async function generateTripItinerary(tripId: string): Promise<SimpleItine
       .single();
 
     const userProfile = profileRow?.profile || {};
+    const profileKeys = Object.keys(userProfile).filter(k => {
+      const v = userProfile[k];
+      return v && (Array.isArray(v) ? v.length > 0 : true);
+    });
+    await appendLog(tripId, profileKeys.length > 0
+      ? `Profile loaded (${profileKeys.length} preference categories)`
+      : 'No profile found — using trip preferences only');
 
     // Check if this is a multi-segment trip
     const segments: TripSegment[] | undefined = trip.trip_overrides?.segments;
     let itinerary: SimpleItinerary;
 
     if (segments && segments.length > 1) {
+      await appendLog(tripId, `Multi-segment trip: ${segments.length} segments detected`);
+      for (let i = 0; i < segments.length; i++) {
+        await appendLog(tripId, `Generating segment ${i + 1}/${segments.length}: ${segments[i].destination}`);
+      }
       itinerary = await generateMultiSegmentItinerary(segments, trip, userProfile);
     } else {
+      await appendLog(tripId, `Calling AI to generate ${trip.destination} itinerary...`);
       itinerary = await generateSingleItinerary(trip, userProfile);
     }
 
+    await appendLog(tripId, `AI returned ${itinerary.days?.length || 0} days, ${itinerary.days?.reduce((n, d) => n + (d.activities?.length || 0), 0) || 0} activities`);
+
     // Run QA validation
+    await appendLog(tripId, 'Running quality checks');
     const qa = validateItinerary(itinerary);
     console.log(`[QA] Trip ${tripId}: passed=${qa.passed}, issues=${qa.issues.length}, warnings=${qa.warnings.length}`);
     if (qa.issues.length > 0) {
@@ -463,7 +504,12 @@ export async function generateTripItinerary(tripId: string): Promise<SimpleItine
       console.log(`[QA] Warnings:`, qa.warnings);
     }
 
+    await appendLog(tripId, qa.passed
+      ? `QA passed (${qa.warnings.length} warnings)`
+      : `QA found ${qa.issues.length} issues, ${qa.warnings.length} warnings`);
+
     // Save to trip (include QA results)
+    await appendLog(tripId, 'Saving itinerary');
     await (supabase as any)
       .from('trips')
       .update({
@@ -480,6 +526,8 @@ export async function generateTripItinerary(tripId: string): Promise<SimpleItine
       })
       .eq('id', tripId);
 
+    await appendLog(tripId, 'Done! Your trip is ready.');
+
     await (supabase as any).from('generation_jobs').insert({
       trip_id: tripId,
       step: 'generating_itinerary',
@@ -488,6 +536,9 @@ export async function generateTripItinerary(tripId: string): Promise<SimpleItine
 
     return itinerary;
   } catch (err: any) {
+    const errMsg = String(err?.message || err).substring(0, 300);
+    await appendLog(tripId, `Error: ${errMsg}`);
+
     await (supabase as any)
       .from('trips')
       .update({ status: 'failed' })
@@ -497,7 +548,7 @@ export async function generateTripItinerary(tripId: string): Promise<SimpleItine
       trip_id: tripId,
       step: 'generating_itinerary',
       status: 'failed',
-      error: String(err?.message || err).substring(0, 500),
+      error: errMsg,
     });
 
     throw err;

@@ -40,6 +40,22 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
       throw error;
     }
 
+    // Detect stale/orphaned generations: if generating for >2.5 minutes, auto-fail
+    if (trip.status === 'generating' && trip.generation_started_at) {
+      const startedAt = new Date(trip.generation_started_at).getTime();
+      const elapsed = Date.now() - startedAt;
+      const STALE_THRESHOLD_MS = 150_000; // 2.5 minutes
+
+      if (elapsed > STALE_THRESHOLD_MS) {
+        console.warn(`[Stale Generation] Trip ${id} has been generating for ${Math.round(elapsed / 1000)}s — marking as failed`);
+        await (supabase as any)
+          .from('trips')
+          .update({ status: 'failed' })
+          .eq('id', id);
+        trip.status = 'failed';
+      }
+    }
+
     return Response.json(trip);
   } catch (error) {
     console.error(`GET /api/trips/[id] error:`, error);
