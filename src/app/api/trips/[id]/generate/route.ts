@@ -2,7 +2,7 @@ import { auth } from '@/app/api/auth/config';
 import { supabaseServer as supabase } from '@/lib/supabase';
 import { generateTripItinerary } from '@/lib/generation/simple-pipeline';
 
-export const maxDuration = 60;
+export const maxDuration = 120;
 
 export async function POST(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {

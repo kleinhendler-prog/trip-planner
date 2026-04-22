@@ -218,6 +218,8 @@ function buildPrompt(trip: any, userProfile?: any): string {
   const prefs = profile.preferences || {};
   const interests = (prefs.interests || []).join(', ') || 'general sightseeing';
   const dislikes = (prefs.dislikes || []).join(', ') || 'none';
+  const dislikesText = prefs.dislikesText || '';
+  const tripSpecificNotes = prefs.tripSpecificNotes || '';
   const nights = Math.max(
     1,
     Math.ceil(
@@ -229,6 +231,15 @@ function buildPrompt(trip: any, userProfile?: any): string {
   const currency = trip.currency || 'EUR';
 
   const travelerProfileSection = buildTravelerProfileSection(userProfile);
+
+  // Trip-specific overrides section
+  let tripSpecificSection = '';
+  if (tripSpecificNotes || dislikesText) {
+    tripSpecificSection = '\nTrip-Specific Notes:\n';
+    if (tripSpecificNotes) tripSpecificSection += `  - Special requests: ${tripSpecificNotes}\n`;
+    if (dislikesText) tripSpecificSection += `  - Additional dislikes: ${dislikesText}\n`;
+    tripSpecificSection += '\n';
+  }
 
   // Trip-type-specific context
   let tripContext = '';
@@ -247,7 +258,7 @@ function buildPrompt(trip: any, userProfile?: any): string {
 Travelers: ${profile.travelers || 2} · Type: ${profile.tripType || 'cultural'} · Hotel: ${prefs.hotelPreference || 'comfort'}
 Interests: ${interests} · Avoid: ${dislikes} · Currency: ${currency}
 ${tripContext ? '\n' + tripContext + '\n' : ''}
-${travelerProfileSection}Use this detailed traveler profile to tailor venue choices, pacing, dining recommendations, and activity intensity.
+${travelerProfileSection}${tripSpecificSection}Use this detailed traveler profile to tailor venue choices, pacing, dining recommendations, and activity intensity. Trip-specific notes take priority over general profile preferences.
 
 Real venue names, geographic clustering. Concise descriptions (1 sentence max). Return ONLY valid JSON (no markdown).
 
@@ -269,6 +280,8 @@ function buildSegmentPrompt(
   const prefs = profile.preferences || {};
   const interests = (prefs.interests || []).join(', ') || 'general sightseeing';
   const dislikes = (prefs.dislikes || []).join(', ') || 'none';
+  const dislikesText = prefs.dislikesText || '';
+  const tripSpecificNotes = prefs.tripSpecificNotes || '';
   const currency = trip.currency || 'EUR';
   const nights = Math.max(
     1,
@@ -278,6 +291,14 @@ function buildSegmentPrompt(
   );
   const days = nights + 1;
   const travelerProfileSection = buildTravelerProfileSection(userProfile);
+
+  let tripSpecificSection = '';
+  if (tripSpecificNotes || dislikesText) {
+    tripSpecificSection = '\nTrip-Specific Notes:\n';
+    if (tripSpecificNotes) tripSpecificSection += `  - Special requests: ${tripSpecificNotes}\n`;
+    if (dislikesText) tripSpecificSection += `  - Additional dislikes: ${dislikesText}\n`;
+    tripSpecificSection += '\n';
+  }
 
   let segContext = '';
   if (segment.type === 'area') {
@@ -299,7 +320,7 @@ ${segContext}
 
 IMPORTANT: Day numbers start at ${dayOffset + 1} (continuing from previous segments).
 
-${travelerProfileSection}Use this detailed traveler profile to tailor venue choices, pacing, dining recommendations, and activity intensity.
+${travelerProfileSection}${tripSpecificSection}Use this detailed traveler profile to tailor venue choices, pacing, dining recommendations, and activity intensity. Trip-specific notes take priority over general profile preferences.
 
 Real venue names, geographic clustering. Concise descriptions (1 sentence max). Return ONLY valid JSON (no markdown).
 

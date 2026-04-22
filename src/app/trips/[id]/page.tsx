@@ -188,6 +188,9 @@ export default function TripViewPage() {
     }
   }, [tripId]);
 
+  const [generationElapsed, setGenerationElapsed] = useState(0);
+  const GENERATION_TIMEOUT_SEC = 180; // 3 minutes failsafe
+
   useEffect(() => {
     let generationTriggered = false;
     const doFetch = async () => {
@@ -213,6 +216,25 @@ export default function TripViewPage() {
     }, 5000);
     return () => clearInterval(interval);
   }, [tripId, fetchTrip]);
+
+  // Generation timeout failsafe: count elapsed seconds and force-fail after 3 minutes
+  useEffect(() => {
+    if (trip?.status !== 'generating') {
+      setGenerationElapsed(0);
+      return;
+    }
+    const timer = setInterval(() => {
+      setGenerationElapsed((prev) => {
+        const next = prev + 1;
+        if (next >= GENERATION_TIMEOUT_SEC) {
+          // Force the UI to show failed state
+          setTrip((t) => t ? { ...t, status: 'failed' } : t);
+        }
+        return next;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [trip?.status]);
 
   const toggleDay = (n: number) => {
     setExpandedDays((prev) => {
@@ -365,19 +387,35 @@ export default function TripViewPage() {
   const destination = typeof trip.destination === 'string' ? trip.destination : trip.destination?.name || 'Trip';
 
   if (trip.status === 'generating') {
+    const progressPct = Math.min(95, (generationElapsed / GENERATION_TIMEOUT_SEC) * 100);
+    const mins = Math.floor(generationElapsed / 60);
+    const secs = generationElapsed % 60;
+    const timeStr = mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
+
     return (
       <AppShell>
         <div className="mx-auto max-w-5xl px-4 py-8">
           <Card>
             <CardHeader>
               <CardTitle>Generating your trip to {destination}...</CardTitle>
-              <CardDescription>Our AI is crafting a personalized itinerary. This usually takes 30-90 seconds.</CardDescription>
+              <CardDescription>Our AI is crafting a personalized itinerary. This usually takes 60-90 seconds.</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-4">
               <div className="h-2 w-full bg-[var(--color-surface-variant)] rounded-full overflow-hidden">
-                <div className="h-full bg-primary-gradient animate-pulse rounded-full" style={{ width: '60%' }} />
+                <div className="h-full bg-primary-gradient rounded-full transition-all duration-1000" style={{ width: `${progressPct}%` }} />
               </div>
-              <p className="mt-4 text-sm text-[var(--color-on-surface-variant)]">This page will refresh automatically when your itinerary is ready.</p>
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-[var(--color-on-surface-variant)]">This page will refresh automatically when your itinerary is ready.</p>
+                <span className="text-label-mono text-xs text-[var(--color-outline)]">{timeStr}</span>
+              </div>
+              {generationElapsed > 90 && (
+                <div className="rounded-[12px] bg-[var(--color-surface-container)] p-3 flex items-start gap-2">
+                  <span className="material-symbols-outlined text-[var(--color-tertiary)] text-[18px] mt-0.5">hourglass_top</span>
+                  <p className="text-xs text-[var(--color-on-surface-variant)]">
+                    Taking longer than usual — complex itineraries can take up to 2-3 minutes. Hang tight!
+                  </p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -386,16 +424,34 @@ export default function TripViewPage() {
   }
 
   if (trip.status === 'failed') {
+    const handleRetry = async () => {
+      setTrip((t) => t ? { ...t, status: 'generating' } : t);
+      setGenerationElapsed(0);
+      try {
+        await apiClient.post(`/trips/${tripId}/generate`, {});
+        fetchTrip();
+      } catch {
+        fetchTrip();
+      }
+    };
+
     return (
       <AppShell>
         <div className="mx-auto max-w-5xl px-4 py-8">
           <Card>
             <CardHeader>
-              <CardTitle className="text-[var(--color-error)]">Generation failed</CardTitle>
-              <CardDescription>Something went wrong while generating your itinerary for {destination}.</CardDescription>
+              <div className="flex items-center gap-2 mb-2">
+                <span className="material-symbols-outlined text-[var(--color-error)]" style={{ fontVariationSettings: "'FILL' 1" }}>error</span>
+                <CardTitle className="text-[var(--color-error)]">Generation failed</CardTitle>
+              </div>
+              <CardDescription>Something went wrong while generating your itinerary for {destination}. This can happen if the AI takes too long or encounters an error.</CardDescription>
             </CardHeader>
-            <CardContent>
-              <Button onClick={() => router.push('/trips/new')}>Try again</Button>
+            <CardContent className="flex gap-3">
+              <Button onClick={handleRetry}>
+                <span className="material-symbols-outlined text-[16px] mr-1.5">refresh</span>
+                Retry Generation
+              </Button>
+              <Button variant="outline" onClick={() => router.push('/trips/new')}>Start Over</Button>
             </CardContent>
           </Card>
         </div>

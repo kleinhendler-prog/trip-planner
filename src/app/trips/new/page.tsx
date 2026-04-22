@@ -34,6 +34,7 @@ import type {
   GenerationProgress,
   Trip,
 } from '@/types';
+import type { UserProfile } from '@/types/profile';
 
 const STEPS = [
   { id: 1, title: 'Destination & Dates' },
@@ -119,6 +120,29 @@ export default function TripCreationPage() {
   const [generationProgress, setGenerationProgress] = useState<GenerationProgress | null>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [profileLoading, setProfileLoading] = useState(true);
+  const [tripSpecificNotes, setTripSpecificNotes] = useState('');
+
+  // Fetch user profile on mount
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const response = await fetch('/api/profile');
+        if (response.ok) {
+          const data = await response.json();
+          if (data.profile && Object.keys(data.profile).length > 0) {
+            setUserProfile(data.profile);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to fetch profile:', err);
+      } finally {
+        setProfileLoading(false);
+      }
+    };
+    fetchProfile();
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -243,6 +267,8 @@ export default function TripCreationPage() {
           interests: formData.interests,
           dislikes: formData.dislikes,
           hotelPreference: formData.hotelPreference,
+          dislikesText: formData.dislikesText,
+          tripSpecificNotes: tripSpecificNotes,
         },
       });
 
@@ -261,6 +287,46 @@ export default function TripCreationPage() {
       });
     }
   };
+
+  // Helper: summarize profile into readable sections
+  const getProfileSummary = (profile: UserProfile) => {
+    const sections: { icon: string; label: string; items: string[] }[] = [];
+    const fmt = (arr?: string[]) => arr?.map(s => s.replace(/_/g, ' ')).map(s => s.charAt(0).toUpperCase() + s.slice(1)) || [];
+
+    if (profile.art?.length || profile.music?.length || profile.performingArts?.length || profile.visualArt?.length) {
+      sections.push({ icon: 'palette', label: 'Art & Culture', items: [...fmt(profile.art), ...fmt(profile.music), ...fmt(profile.performingArts), ...fmt(profile.visualArt)] });
+    }
+    if (profile.cuisinesLoved?.length || profile.diningStyle?.length || profile.dietary?.length) {
+      const items = [...fmt(profile.cuisinesLoved), ...fmt(profile.diningStyle)];
+      if (profile.dietary?.length) items.push(`Diet: ${fmt(profile.dietary).join(', ')}`);
+      if (profile.foodAdventurousness) items.push(`Adventurousness: ${profile.foodAdventurousness}/5`);
+      sections.push({ icon: 'restaurant', label: 'Food & Dining', items });
+    }
+    if (profile.cuisinesAvoided?.length) {
+      sections.push({ icon: 'block', label: 'Food to Avoid', items: fmt(profile.cuisinesAvoided) });
+    }
+    if (profile.historyEras?.length || profile.historySites?.length) {
+      sections.push({ icon: 'account_balance', label: 'History', items: [...fmt(profile.historyEras), ...fmt(profile.historySites), ...(profile.historyDepth ? [fmt([profile.historyDepth])[0] + ' depth'] : [])] });
+    }
+    if (profile.hikingLevel || profile.waterActivities?.length || profile.landscapes?.length) {
+      const items = [...(profile.hikingLevel ? [fmt([profile.hikingLevel])[0] + ' hiking'] : []), ...fmt(profile.waterActivities), ...fmt(profile.landscapes), ...fmt(profile.wildlife), ...fmt(profile.gardens)];
+      sections.push({ icon: 'park', label: 'Nature & Outdoors', items });
+    }
+    if (profile.funAttractions?.length || profile.shopping?.length || profile.nightlife?.length || profile.wellness?.length) {
+      sections.push({ icon: 'attractions', label: 'Fun & Entertainment', items: [...fmt(profile.funAttractions), ...fmt(profile.shopping), ...fmt(profile.wellness), ...fmt(profile.nightlife)] });
+    }
+    if (profile.pace || profile.chronotype || profile.tourStyle?.length) {
+      const items = [...(profile.pace ? [fmt([profile.pace])[0] + ' pace'] : []), ...(profile.chronotype ? [fmt([profile.chronotype])[0]] : []), ...fmt(profile.tourStyle), ...fmt(profile.transportPreferred)];
+      sections.push({ icon: 'pace', label: 'Travel Style', items });
+    }
+    if (profile.budgetBand || profile.splurgeOn?.length) {
+      const items = [...(profile.budgetBand ? [fmt([profile.budgetBand])[0] + ' budget'] : []), ...(profile.splurgeOn?.length ? ['Splurge on: ' + fmt(profile.splurgeOn).join(', ')] : [])];
+      sections.push({ icon: 'payments', label: 'Budget', items });
+    }
+    return sections;
+  };
+
+  const hasProfile = userProfile && Object.keys(userProfile).length > 0;
 
   const interestOptions = Object.entries(INTERESTS).map(([key, val]) => ({
     value: key,
@@ -671,49 +737,154 @@ export default function TripCreationPage() {
                 </div>
               )}
 
-              {/* Step 3: Interests */}
+              {/* Step 3: Interests — profile summary or fallback chips */}
               {currentStep === 3 && (
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-[var(--color-on-surface)] mb-3">
-                      What are you interested in?
-                    </label>
-                    <Chip
-                      options={interestOptions}
-                      selectedValues={formData.interests}
-                      onChange={(selected) =>
-                        setFormData({
-                          ...formData,
-                          interests: selected as Interest[],
-                        })
-                      }
-                    />
-                  </div>
+                <div className="space-y-5">
+                  {profileLoading ? (
+                    <div className="flex items-center justify-center py-8">
+                      <div className="inline-block h-6 w-6 animate-spin rounded-full border-3 border-[var(--color-primary)] border-t-transparent"></div>
+                      <span className="ml-3 text-sm text-[var(--color-on-surface-variant)]">Loading your profile...</span>
+                    </div>
+                  ) : hasProfile ? (
+                    <>
+                      {/* Profile Summary */}
+                      <div className="rounded-[16px] bg-[var(--color-primary-fixed)] border border-[var(--color-primary-fixed-dim)] p-4">
+                        <div className="flex items-center gap-2 mb-3">
+                          <span className="material-symbols-outlined text-[var(--color-primary)]" style={{ fontVariationSettings: "'FILL' 1" }}>person</span>
+                          <p className="font-heading font-bold text-[var(--color-on-surface)]">Your Travel Profile</p>
+                          <button
+                            type="button"
+                            onClick={() => window.open('/profile-setup', '_blank')}
+                            className="ml-auto text-xs text-[var(--color-primary)] hover:underline"
+                          >
+                            Edit profile
+                          </button>
+                        </div>
+                        <div className="grid gap-3 sm:grid-cols-2">
+                          {getProfileSummary(userProfile!).map((section) => (
+                            <div key={section.label} className="rounded-[12px] bg-[var(--color-surface-container-lowest)] p-3">
+                              <div className="flex items-center gap-1.5 mb-1.5">
+                                <span className="material-symbols-outlined text-[16px] text-[var(--color-primary)]">{section.icon}</span>
+                                <span className="text-xs font-bold text-[var(--color-on-surface)] uppercase tracking-wide">{section.label}</span>
+                              </div>
+                              <p className="text-xs text-[var(--color-on-surface-variant)] leading-relaxed">
+                                {section.items.slice(0, 6).join(', ')}
+                                {section.items.length > 6 && ` +${section.items.length - 6} more`}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                        {getProfileSummary(userProfile!).length === 0 && (
+                          <p className="text-sm text-[var(--color-on-surface-variant)]">
+                            Your profile is set up but has no specific preferences yet.{' '}
+                            <button type="button" onClick={() => window.open('/profile-setup', '_blank')} className="text-[var(--color-primary)] hover:underline">
+                              Add some preferences
+                            </button>
+                          </p>
+                        )}
+                      </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-[var(--color-on-surface)] mb-3">
-                      What would you like to avoid?
-                    </label>
-                    <Chip
-                      options={dislikeOptions}
-                      selectedValues={formData.dislikes}
-                      onChange={(selected) =>
-                        setFormData({
-                          ...formData,
-                          dislikes: selected as Dislike[],
-                        })
-                      }
-                    />
-                  </div>
+                      {/* Trip-specific overrides */}
+                      <div>
+                        <label className="block text-sm font-medium text-[var(--color-on-surface)] mb-2">
+                          <span className="material-symbols-outlined text-[16px] align-middle mr-1">edit_note</span>
+                          Anything specific for this trip?
+                        </label>
+                        <textarea
+                          value={tripSpecificNotes}
+                          onChange={(e) => setTripSpecificNotes(e.target.value)}
+                          placeholder="e.g., Focus on street food this time, skip museums, we want more beach days, looking for rooftop bars..."
+                          className="flex min-h-24 w-full rounded-[12px] border border-[var(--color-outline)] bg-[var(--color-background)] px-4 py-3 text-sm text-[var(--color-on-surface)] focus:outline-none focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary-fixed)] transition-all"
+                        />
+                        <p className="text-xs text-[var(--color-on-surface-variant)] mt-1.5">
+                          These notes will override or supplement your profile preferences for this trip only.
+                        </p>
+                      </div>
 
-                  <textarea
-                    value={formData.dislikesText}
-                    onChange={(e) =>
-                      setFormData({ ...formData, dislikesText: e.target.value })
-                    }
-                    placeholder="Any other dislikes or restrictions?"
-                    className="flex min-h-20 w-full rounded-[12px] border border-[var(--color-outline)] bg-[var(--color-background)] px-4 py-3 text-sm text-[var(--color-on-surface)] focus:outline-none focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary-fixed)] transition-all"
-                  />
+                      {/* Quick dislikes for this trip */}
+                      <div>
+                        <label className="block text-sm font-medium text-[var(--color-on-surface)] mb-3">
+                          <span className="material-symbols-outlined text-[16px] align-middle mr-1">block</span>
+                          Anything to avoid on this trip?
+                        </label>
+                        <Chip
+                          options={dislikeOptions}
+                          selectedValues={formData.dislikes}
+                          onChange={(selected) =>
+                            setFormData({
+                              ...formData,
+                              dislikes: selected as Dislike[],
+                            })
+                          }
+                        />
+                        <textarea
+                          value={formData.dislikesText}
+                          onChange={(e) =>
+                            setFormData({ ...formData, dislikesText: e.target.value })
+                          }
+                          placeholder="Any other dislikes or restrictions for this trip?"
+                          className="flex min-h-16 w-full rounded-[12px] border border-[var(--color-outline)] bg-[var(--color-background)] px-4 py-3 text-sm text-[var(--color-on-surface)] focus:outline-none focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary-fixed)] transition-all mt-3"
+                        />
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      {/* No profile — show original chips + prompt to create profile */}
+                      <div className="rounded-[16px] bg-[var(--color-surface-container)] border border-[var(--color-outline-variant)] p-4 flex items-start gap-3">
+                        <span className="material-symbols-outlined text-[var(--color-tertiary)]">info</span>
+                        <div>
+                          <p className="text-sm text-[var(--color-on-surface)]">
+                            <span className="font-bold">Tip:</span> Set up a{' '}
+                            <button type="button" onClick={() => window.open('/profile-setup', '_blank')} className="text-[var(--color-primary)] hover:underline font-medium">
+                              travel profile
+                            </button>
+                            {' '}for more personalized trips. Your profile will auto-fill this step next time.
+                          </p>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-[var(--color-on-surface)] mb-3">
+                          What are you interested in?
+                        </label>
+                        <Chip
+                          options={interestOptions}
+                          selectedValues={formData.interests}
+                          onChange={(selected) =>
+                            setFormData({
+                              ...formData,
+                              interests: selected as Interest[],
+                            })
+                          }
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-[var(--color-on-surface)] mb-3">
+                          What would you like to avoid?
+                        </label>
+                        <Chip
+                          options={dislikeOptions}
+                          selectedValues={formData.dislikes}
+                          onChange={(selected) =>
+                            setFormData({
+                              ...formData,
+                              dislikes: selected as Dislike[],
+                            })
+                          }
+                        />
+                      </div>
+
+                      <textarea
+                        value={formData.dislikesText}
+                        onChange={(e) =>
+                          setFormData({ ...formData, dislikesText: e.target.value })
+                        }
+                        placeholder="Any other dislikes or restrictions?"
+                        className="flex min-h-20 w-full rounded-[12px] border border-[var(--color-outline)] bg-[var(--color-background)] px-4 py-3 text-sm text-[var(--color-on-surface)] focus:outline-none focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary-fixed)] transition-all"
+                      />
+                    </>
+                  )}
                 </div>
               )}
 

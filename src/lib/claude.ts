@@ -11,7 +11,7 @@ export interface ClaudeMessageOptions {
 }
 
 const MAX_RETRIES = 3;
-const TIMEOUT_MS = 60000; // 60 seconds
+const TIMEOUT_MS = 90000; // 90 seconds
 
 /**
  * Call Claude API with retry logic and timeout
