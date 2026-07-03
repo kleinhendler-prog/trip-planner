@@ -63,15 +63,15 @@ All four targets below are in the **project root**. Never edit the global `~/.cl
 
 ## Current status
 
-The app is **live in production on Vercel** (last Cowork deploy 2026-04-22; auto-deploys on push to `main`). It was built and iterated in Claude Cowork April 12–22, 2026, including real-usage fixes (stuck generations, JSON truncation, timeout handling), so the core wizard → generation → itinerary flow has actually been used. On 2026-07-02/03 the project moved to Claude Code: git is connected to the GitHub remote, the local-folder/remote divergence was resolved (remote won; the stale local state is preserved on branch `local-cowork-snapshot`), the Supabase build crash was fixed, and middleware was migrated to the Next 16 proxy convention. Not yet re-verified end-to-end after these changes.
+Built and iterated in Claude Cowork April 12–22, 2026 (deployed to Vercel with real-usage fixes), **but production is currently DOWN: the Supabase project (`flrksrouxghnninsywhx`, "Trip Planner", eu-central-1) was auto-paused by the free tier after inactivity.** Restoring it (Supabase dashboard or MCP with permission) is the first step to bringing the app back. On 2026-07-03 the project moved to Claude Code: git connected to the GitHub remote, local/remote divergence resolved (remote won; stale local state on branch `local-cowork-snapshot`), Supabase build crash fixed, middleware → proxy migration done, local dev environment configured, and local login verified working. Local trips/generation still need the Supabase anon + service-role keys (dashboard → Settings → API, after restore).
 
 ---
 
 ## Where we left off
 
-- **Last worked on:** (2026-07-03) First Claude Code session: set up memory files, discovered the GitHub remote was 3 weeks ahead of the local folder, reconciled onto remote `main`, hardened .gitignore (API keys), fixed the Supabase build crash, migrated middleware → proxy, pushed.
-- **Next up:** Verify the deployed app still works after today's push (log in, generate a trip). Then start refining features.
-- **Open question:** Delete the stale duplicate `trip-planner/` folder (blocked on explicit user OK)? Make the public GitHub repo private? Remove dead `generation/pipeline.ts`?
+- **Last worked on:** (2026-07-03) First Claude Code session: memory files set up; discovered GitHub remote was 3 weeks ahead of the local folder and reconciled onto remote `main`; hardened .gitignore; fixed Supabase build crash; middleware → proxy; configured `.env.local` (was all placeholders) and verified local login; discovered the production Supabase DB is paused. 4 commits ready locally, **not yet pushed** (push = production deploy, needs user OK).
+- **Next up:** User decisions: (1) OK the push to main, (2) restore the paused Supabase project, (3) paste Supabase anon + service-role keys into `.env.local`, (4) OK deleting `trip-planner/` duplicate. Then a full e2e test: login → wizard → generate → itinerary.
+- **Open question:** Make the public GitHub repo private? Remove dead `generation/pipeline.ts`?
 
 ---
 
@@ -83,6 +83,8 @@ For the full list of completed features, see `FEATURES.md`.
 - *Nothing actively in progress.*
 
 ### Planned
+- Restore the paused Supabase project, then put its anon + service-role keys into `.env.local` (dashboard → Settings → API).
+- Push the 4 local commits (triggers production deploy) once the user OKs it.
 - End-to-end verification pass of the live app after the 2026-07-03 changes (login → wizard → generation → itinerary).
 - Remove dead code: `src/lib/generation/pipeline.ts` + `prompts.ts` (retired 7-step pipeline; only `generation/index.ts` still re-exports it).
 - Write a migration file for the `trips` columns added directly in production (`generation_started_at`, `generation_log`) so `supabase/migrations/` matches the live DB again.
@@ -127,3 +129,7 @@ For the full list of completed features, see `FEATURES.md`.
 - `trip-planner/` is a stale duplicate of the root project. Greps/ESLint scan it too and double-count; scope searches to `src/`.
 - ESLint has ~427 pre-existing errors (mostly `no-explicit-any`); a red `npm run lint` does not mean your change broke something — lint only the files you touched.
 - `local-cowork-snapshot` branch also preserves Cowork leftovers removed from `main`'s tree (deploy.sh force-push script, old 7-step-era docs).
+- **`.env.local` was 100% placeholders until 2026-07-03** — real keys only ever lived in Vercel env and the `API/` folder. Now wired: Supabase URL, Anthropic + Google keys (copied from `API/`), generated NEXTAUTH_SECRET, local login creds. Still placeholders: Supabase anon + service-role keys (need dashboard after DB restore), OpenWeather, email/affiliate stubs.
+- **bcrypt hashes in `.env.local` must have `$` escaped as `\$`** — Next's env loader (dotenv-expand) treats `$2b$10$...` as variable references and silently mangles the hash into garbage → "Invalid credentials" with no other clue. (Vercel's env UI doesn't have this problem.)
+- Supabase free tier **auto-pauses projects after ~1 week of inactivity**. The app's DB paused sometime after April; if the app suddenly "breaks everywhere," check project status first.
+- A NextAuth "Configuration" error on the login page usually just means the `authorize()` function threw (e.g., wrong password) — not necessarily a real config problem.
