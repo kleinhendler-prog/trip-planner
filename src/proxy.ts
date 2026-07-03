@@ -1,5 +1,5 @@
 /**
- * Authentication Middleware
+ * Authentication Proxy (Next.js 16 rename of middleware)
  * Protects all routes except /login and /api/auth/*
  * Redirects unauthenticated users to login page
  */
@@ -8,11 +8,11 @@ import { auth } from '@/app/api/auth/config';
 import { NextRequest, NextResponse } from 'next/server';
 
 /**
- * Middleware to protect routes
+ * Proxy to protect routes
  * Public routes: /login, /api/auth/*, static files
  * Protected routes: everything else
  */
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Allow auth routes and static files
