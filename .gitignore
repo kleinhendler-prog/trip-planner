@@ -1,6 +1,31 @@
+# dependencies
 node_modules/
+
+# next.js build output
 .next/
-.env.local
-package-lock.json
+out/
+
+# env files — real keys live here; only the example is tracked
+.env*
+!.env.example
+
+# real API keys in plain text — NEVER commit
+/API/
+
+# byte-identical duplicate of this project (Cowork leftover, pending deletion)
+/trip-planner/
+
+# build artifacts & logs
 build.log
 tsconfig.tsbuildinfo
+*.log
+
+# lockfile intentionally untracked (kept from Cowork-era choice)
+package-lock.json
+
+# OS / editor noise
+.DS_Store
+*.pem
+
+# vercel
+.vercel
