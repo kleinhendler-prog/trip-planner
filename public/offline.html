@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#3b82f6">
+  <title>Offline - Trip Planner</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .offline-container {
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      padding: 40px;
+      max-width: 500px;
+      text-align: center;
+    }
+
+    .offline-icon {
+      width: 80px;
+      height: 80px;
+      margin: 0 auto 24px;
+      background: #f3f4f6;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 40px;
+    }
+
+    h1 {
+      color: #1f2937;
+      font-size: 28px;
+      margin-bottom: 12px;
+    }
+
+    p {
+      color: #6b7280;
+      font-size: 16px;
+      line-height: 1.6;
+      margin-bottom: 24px;
+    }
+
+    .offline-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    button {
+      padding: 12px 24px;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+    }
+
+    .btn-secondary {
+      background: #f3f4f6;
+      color: #1f2937;
+    }
+
+    .btn-secondary:hover {
+      background: #e5e7eb;
+    }
+
+    .offline-tips {
+      margin-top: 32px;
+      padding-top: 24px;
+      border-top: 1px solid #e5e7eb;
+      text-align: left;
+    }
+
+    .offline-tips h3 {
+      color: #1f2937;
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 12px;
+    }
+
+    .offline-tips ul {
+      list-style: none;
+      color: #6b7280;
+      font-size: 14px;
+      line-height: 1.8;
+    }
+
+    .offline-tips li {
+      margin-bottom: 8px;
+    }
+
+    .offline-tips li:before {
+      content: "✓ ";
+      color: #10b981;
+      font-weight: bold;
+      margin-right: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="offline-container">
+    <div class="offline-icon">📵</div>
+    <h1>You're Offline</h1>
+    <p>It looks like you've lost your internet connection. Some features won't be available until you're back online.</p>
+
+    <div class="offline-actions">
+      <button class="btn-primary" onclick="location.reload()">Try Again</button>
+      <button class="btn-secondary" onclick="goHome()">Go Home</button>
+    </div>
+
+    <div class="offline-tips">
+      <h3>What You Can Do:</h3>
+      <ul>
+        <li>View previously loaded trips and itineraries</li>
+        <li>Check saved trip information</li>
+        <li>Read cached content</li>
+      </ul>
+    </div>
+  </div>
+
+  <script>
+    function goHome() {
+      window.location.href = '/';
+    }
+
+    // Check if connection is restored
+    window.addEventListener('online', () => {
+      // Reload page when back online
+      location.reload();
+    });
+  </script>
+</body>
+</html>
