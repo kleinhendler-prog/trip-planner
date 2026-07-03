@@ -4,20 +4,36 @@
  * For server-only operations that bypass RLS
  */
 
-import { createClient } from '@supabase/supabase-js';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@/types';
 
 // ============= Client Configuration =============
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+// Env vars are read lazily (on first query, not at import time) so that
+// `next build` can collect page data without a configured environment.
+let serverClient: SupabaseClient<Database> | null = null;
 
-if (!supabaseUrl) {
-  throw new Error('Missing environment variable: NEXT_PUBLIC_SUPABASE_URL');
-}
+function getServerClient(): SupabaseClient<Database> {
+  if (serverClient) return serverClient;
 
-if (!supabaseServiceKey) {
-  throw new Error('Missing environment variable: SUPABASE_SERVICE_ROLE_KEY');
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl) {
+    throw new Error('Missing environment variable: NEXT_PUBLIC_SUPABASE_URL');
+  }
+
+  if (!supabaseServiceKey) {
+    throw new Error('Missing environment variable: SUPABASE_SERVICE_ROLE_KEY');
+  }
+
+  serverClient = createClient<Database>(supabaseUrl, supabaseServiceKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  });
+  return serverClient;
 }
 
 /**
@@ -25,26 +41,25 @@ if (!supabaseServiceKey) {
  * Bypasses RLS for server operations
  * Use this for API routes and server-side operations
  */
-export const supabaseServer = createClient<Database>(
-  supabaseUrl,
-  supabaseServiceKey,
-  {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
-    },
-  }
-);
+export const supabaseServer = new Proxy({} as SupabaseClient<Database>, {
+  get(_target, prop) {
+    const client = getServerClient() as unknown as Record<string | symbol, unknown>;
+    const value = client[prop];
+    return typeof value === 'function' ? (value as (...args: unknown[]) => unknown).bind(client) : value;
+  },
+});
 
 /**
  * Client-side Supabase client (for browser operations if needed)
- * Uses anon key and respects RLS
+ * Uses anon key and respects RLS; returns null when the anon key is not set
  */
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+export function getSupabaseBrowserClient(): SupabaseClient<Database> | null {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-export const supabaseClient = supabaseAnonKey
-  ? createClient<Database>(supabaseUrl, supabaseAnonKey)
-  : null;
+  if (!supabaseUrl || !supabaseAnonKey) return null;
+  return createClient<Database>(supabaseUrl, supabaseAnonKey);
+}
 
 /**
  * Default export for use in libraries (uses service role for admin operations)
