@@ -57,21 +57,21 @@ All four targets below are in the **project root**. Never edit the global `~/.cl
   - `stitch-design/` + `stitch-prompt.md` — Google Stitch UI kit and the design-system prompt that produced it.
   - `API/` — plaintext API key files (Anthropic, Google). **Sensitive — gitignored, never commit.**
   - `trip-planner/` — stale duplicate of the project (Cowork leftover, gitignored). Candidate for deletion; ignore it when searching code.
-- **External services:** Supabase (Postgres DB), NextAuth v5 beta (single-user login via AUTH_USERNAME + bcrypt AUTH_PASSWORD_HASH env vars, JWT sessions), Anthropic API (itinerary generation), Google Places API, OpenWeatherMap. **Hosted on Vercel — pushing to `main` auto-deploys production.** GitHub: `kleinhendler-prog/trip-planner` (public repo). Email provider + Booking.com/GetYourGuide affiliate IDs are stubbed in `.env.example`.
+- **External services:** Supabase (Postgres DB — **being replaced by Neon**, see DECISIONS), NextAuth v5 beta single-user env login (**to be replaced by Neon Auth** in Phase 2), Anthropic API (itinerary generation), Google Places API, OpenWeatherMap. **Hosted on Vercel — pushing to `main` auto-deploys production.** GitHub: `kleinhendler-prog/trip-planner` (public repo). Email provider + Booking.com/GetYourGuide affiliate IDs are stubbed in `.env.example`.
 
 ---
 
 ## Current status
 
-Built and iterated in Claude Cowork April 12–22, 2026 (deployed to Vercel with real-usage fixes), **but production is currently DOWN: the Supabase project (`flrksrouxghnninsywhx`, "Trip Planner", eu-central-1) was auto-paused by the free tier after inactivity.** Restoring it (Supabase dashboard or MCP with permission) is the first step to bringing the app back. On 2026-07-03 the project moved to Claude Code: git connected to the GitHub remote, local/remote divergence resolved (remote won; stale local state on branch `local-cowork-snapshot`), Supabase build crash fixed, middleware → proxy migration done, local dev environment configured, and local login verified working. Local trips/generation still need the Supabase anon + service-role keys (dashboard → Settings → API, after restore).
+Built and iterated in Claude Cowork April 12–22, 2026. Moved to Claude Code on 2026-07-03: git reconnected (remote won over the stale local folder; old state on branch `local-cowork-snapshot`), build crash fixed, middleware → proxy done, local login verified. Pushed 2026-07-04; **Vercel production deploy of those fixes succeeded**. **The app's data layer is dead everywhere**: the old Supabase DB is paused and we decided to ditch it for **Neon + Neon Auth** (fresh start, no data export). The site serves pages but can't load or create trips until the Neon migration lands. Next concrete step: user provisions Neon, then the phased migration in Planned.
 
 ---
 
 ## Where we left off
 
-- **Last worked on:** (2026-07-03) First Claude Code session: memory files set up; discovered GitHub remote was 3 weeks ahead of the local folder and reconciled onto remote `main`; hardened .gitignore; fixed Supabase build crash; middleware → proxy; configured `.env.local` (was all placeholders) and verified local login; discovered the production Supabase DB is paused. 4 commits ready locally, **not yet pushed** (push = production deploy, needs user OK).
-- **Next up:** User decisions: (1) OK the push to main, (2) restore the paused Supabase project, (3) paste Supabase anon + service-role keys into `.env.local`, (4) OK deleting `trip-planner/` duplicate. Then a full e2e test: login → wizard → generate → itinerary.
-- **Open question:** Make the public GitHub repo private? Remove dead `generation/pipeline.ts`?
+- **Last worked on:** (2026-07-04) Pushed all fixes (production deploy succeeded), deleted the duplicate `trip-planner/` folder, and decided the database future: ditch Supabase for **Neon + Neon Auth**, start fresh (April trips were test data). Verified Neon Auth is free at our scale (60k MAU on free plan).
+- **Next up:** User provisions Neon (recommended: Vercel dashboard → Storage → Create Database → Neon, so env vars auto-connect). Then Phase 1 of the migration (swap data layer to Neon, keep current login), then Phase 2 (Neon Auth multi-user login).
+- **Open question:** Make the public GitHub repo private? Remove dead `generation/pipeline.ts` (could fold into Phase 1)?
 
 ---
 
@@ -83,11 +83,14 @@ For the full list of completed features, see `FEATURES.md`.
 - *Nothing actively in progress.*
 
 ### Planned
-- Restore the paused Supabase project, then put its anon + service-role keys into `.env.local` (dashboard → Settings → API).
-- Push the 4 local commits (triggers production deploy) once the user OKs it.
-- End-to-end verification pass of the live app after the 2026-07-03 changes (login → wizard → generation → itinerary).
-- Remove dead code: `src/lib/generation/pipeline.ts` + `prompts.ts` (retired 7-step pipeline; only `generation/index.ts` still re-exports it).
-- Write a migration file for the `trips` columns added directly in production (`generation_started_at`, `generation_log`) so `supabase/migrations/` matches the live DB again.
+**Neon migration (decided 2026-07-04, phased so every push stays deployable):**
+- **Phase 0 (user):** provision Neon via Vercel Marketplace (Vercel dashboard → Storage → Neon) so DATABASE_URL lands in Vercel env automatically; pull it into `.env.local` too.
+- **Phase 1 (code):** swap the data layer from supabase-js to Neon Postgres (Drizzle ORM + schema recreated from `supabase/migrations/` incl. the 2 production-only trips columns; re-run source seeds; delete dead 7-step pipeline while touching the area). Keep the current single-user login. Verify e2e locally, then deploy.
+- **Phase 2 (code):** replace the env-var login with Neon Auth (real multi-user signup/login); tie trips to real user IDs. Verify, deploy.
+- **Cleanup after Phase 1:** remove supabase-js dependency, `src/lib/supabase.ts`, and Supabase env vars from Vercel; the old Supabase project can then be deleted.
+
+**Other:**
+- End-to-end verification pass (login → wizard → generate → itinerary) — becomes part of Phase 1 acceptance.
 - Pay down ESLint debt (~427 pre-existing errors, mostly `no-explicit-any` and unused vars).
 - Decide: make the public GitHub repo private?
 
@@ -104,7 +107,7 @@ For the full list of completed features, see `FEATURES.md`.
 - **YOU MUST** never commit `.env.local` or the `API/` folder — both contain real API keys. `.gitignore` covers both since 2026-07-03; keep it that way.
 - **Pushing to `main` deploys to production** (Vercel auto-deploy). Only push code that builds and type-checks.
 - Deleting the duplicate `trip-planner/` folder (pending my confirmation it holds nothing unique).
-- Running Supabase migrations against the live project.
+- Running schema changes against the live database (Supabase today, Neon after the migration).
 - The Supabase service-role key bypasses row-level security — server-side code only, never expose it to the browser.
 - Never force-push `main` — the remote is the source of truth and production history.
 
@@ -129,7 +132,7 @@ For the full list of completed features, see `FEATURES.md`.
 - `trip-planner/` is a stale duplicate of the root project. Greps/ESLint scan it too and double-count; scope searches to `src/`.
 - ESLint has ~427 pre-existing errors (mostly `no-explicit-any`); a red `npm run lint` does not mean your change broke something — lint only the files you touched.
 - `local-cowork-snapshot` branch also preserves Cowork leftovers removed from `main`'s tree (deploy.sh force-push script, old 7-step-era docs).
-- **`.env.local` was 100% placeholders until 2026-07-03** — real keys only ever lived in Vercel env and the `API/` folder. Now wired: Supabase URL, Anthropic + Google keys (copied from `API/`), generated NEXTAUTH_SECRET, local login creds. Still placeholders: Supabase anon + service-role keys (need dashboard after DB restore), OpenWeather, email/affiliate stubs.
+- **`.env.local` was 100% placeholders until 2026-07-03** — real keys only ever lived in Vercel env and the `API/` folder. Now wired: Anthropic + Google keys (copied from `API/`), generated NEXTAUTH_SECRET, local login creds. Still placeholders: OpenWeather + email/affiliate stubs; the DB entries will collapse to one Neon DATABASE_URL in Phase 1.
 - **bcrypt hashes in `.env.local` must have `$` escaped as `\$`** — Next's env loader (dotenv-expand) treats `$2b$10$...` as variable references and silently mangles the hash into garbage → "Invalid credentials" with no other clue. (Vercel's env UI doesn't have this problem.)
-- Supabase free tier **auto-pauses projects after ~1 week of inactivity**. The app's DB paused sometime after April; if the app suddenly "breaks everywhere," check project status first.
+- Supabase free tier **auto-pauses projects after ~1 week of inactivity** and needs a manual restore — this silently killed production and prompted the move to Neon (2026-07-04). Neon also scales to zero when idle, but wakes automatically on the next connection (expect a couple of slow first requests, not an outage).
 - A NextAuth "Configuration" error on the login page usually just means the `authorize()` function threw (e.g., wrong password) — not necessarily a real config problem.
