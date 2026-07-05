@@ -31,10 +31,10 @@ Built in Claude Cowork April 12–22, 2026 and **live in production on Vercel** 
 - **Day reordering** — up/down arrows re-number days and dates, warns on venue-closure conflicts.
 - **Parking suggestions** — per-day parking tip for driving days.
 - **Trip actions** — duplicate trip, regenerate a single day, swap an activity, mark-as-booked toggle, trip status changes, PDF export (print stylesheet).
-- **Weather integration** — OpenWeatherMap forecasts for trips within 14 days, weather refresh (manual + cron route), weather-based swap suggestions.
+- **Weather awareness** — climate notes and rainy-day alternatives come from the generation prompt (trips within 14 days get a specific forecast). *The separate weather-refresh/apply-swaps/cron routes were built for the old data model and are stubbed 501s since 2026-07-04.*
 - **Booking dashboard** — Must-Book-Now banner with booking links (GetYourGuide/Viator), confirmations per trip.
 - **Sources** — community "destination sources" page with voting; DB seeded with universal + Italy sources.
 - **Trip reflection** — post-trip feedback page and API (trip_reflections).
 - **Profile & preferences** — profile-setup questionnaire + preferences API (interests, dislikes, hotel/budget/pace).
-- **Database schema** — 7 Supabase tables with migrations, plus 2 production-only trips columns (see CLAUDE.md Gotchas).
+- **Neon data layer (2026-07-04)** — 9-table Drizzle schema (`src/lib/db/schema.ts`) on Neon serverless Postgres; seed script for the 55 starter sources; verified end-to-end (login → create → generate → render → delete).
 - **Inbound email endpoint** — API route exists for receiving booking-confirmation emails (integration stubbed, no provider wired).
