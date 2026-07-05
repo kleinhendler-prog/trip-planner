@@ -1,12 +1,12 @@
 /**
  * Single Source API Routes
- * PATCH: Update source (trust_rating, active)
+ * PATCH: Update source (trust rating, active)
  * DELETE: Delete source
  */
 
 import { auth } from '@/app/api/auth/config';
-import { supabaseServer as supabase } from '@/lib/supabase';
-
+import { db, destination_sources } from '@/lib/db';
+import { eq } from 'drizzle-orm';
 
 /**
  * PATCH /api/sources/[id]
@@ -26,13 +26,13 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     const body = await request.json() as any;
 
     // Verify source exists
-    const { data: source, error: fetchError } = await (supabase as any)
-      .from('destination_sources')
-      .select('createdBy')
-      .eq('id', id)
-      .single();
+    const rows = await db
+      .select({ created_by: destination_sources.created_by })
+      .from(destination_sources)
+      .where(eq(destination_sources.id, id));
+    const source = rows[0];
 
-    if (fetchError || !source) {
+    if (!source) {
       return Response.json(
         { error: 'Source not found' },
         { status: 404 }
@@ -40,37 +40,33 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     }
 
     // Only creator can update
-    if (source.createdBy !== session.user.id) {
+    if (source.created_by !== session.user.id) {
       return Response.json(
         { error: 'unauthorized' },
         { status: 401 }
       );
     }
 
-    const updateData: any = {
-      updatedAt: new Date(),
+    const updateData: Record<string, unknown> = {
+      updated_at: new Date(),
     };
 
-    if (body.trust_rating !== undefined) {
-      updateData.trust_rating = Math.max(0, Math.min(10, body.trust_rating));
+    const trustRating = body.trust_rating ?? body.trustRating;
+    if (trustRating !== undefined) {
+      updateData.trust_rating = trustRating;
     }
 
     if (body.active !== undefined) {
       updateData.active = body.active;
     }
 
-    const { data, error: updateError } = await (supabase as any)
-      .from('destination_sources')
-      .update(updateData)
-      .eq('id', id)
-      .select()
-      .single();
+    const updated = await db
+      .update(destination_sources)
+      .set(updateData)
+      .where(eq(destination_sources.id, id))
+      .returning();
 
-    if (updateError) {
-      throw updateError;
-    }
-
-    return Response.json(data);
+    return Response.json(updated[0]);
   } catch (error) {
     console.error(`PATCH /api/sources/[id] error:`, error);
     return Response.json(
@@ -97,34 +93,27 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
     const { id } = await params;
 
     // Verify source belongs to user
-    const { data: source, error: fetchError } = await (supabase as any)
-      .from('destination_sources')
-      .select('createdBy')
-      .eq('id', id)
-      .single();
+    const rows = await db
+      .select({ created_by: destination_sources.created_by })
+      .from(destination_sources)
+      .where(eq(destination_sources.id, id));
+    const source = rows[0];
 
-    if (fetchError || !source) {
+    if (!source) {
       return Response.json(
         { error: 'Source not found' },
         { status: 404 }
       );
     }
 
-    if (source.createdBy !== session.user.id) {
+    if (source.created_by !== session.user.id) {
       return Response.json(
         { error: 'unauthorized' },
         { status: 401 }
       );
     }
 
-    const { error: deleteError } = await (supabase as any)
-      .from('destination_sources')
-      .delete()
-      .eq('id', id);
-
-    if (deleteError) {
-      throw deleteError;
-    }
+    await db.delete(destination_sources).where(eq(destination_sources.id, id));
 
     return Response.json({ success: true });
   } catch (error) {

@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Trip Builder - Overlays &amp; Panels</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;700;800&amp;family=Be+Vietnam+Pro:wght@400;500;600&amp;family=Space+Grotesk:wght@500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-family: 'Material Symbols Outlined';
+            font-weight: normal;
+            font-style: normal;
+            font-size: 24px;
+            line-height: 1;
+            letter-spacing: normal;
+            text-transform: none;
+            display: inline-block;
+            white-space: nowrap;
+            word-wrap: normal;
+            direction: ltr;
+            -webkit-font-feature-settings: 'liga';
+            -webkit-font-smoothing: antialiased;
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-tertiary-container": "#fffbff",
+                        "on-secondary-container": "#711601",
+                        "outline": "#767586",
+                        "surface-container-low": "#f5f2fe",
+                        "primary": "#4648d4",
+                        "error": "#ba1a1a",
+                        "tertiary": "#904900",
+                        "secondary-container": "#fe7d5e",
+                        "secondary": "#a53b22",
+                        "surface-container-high": "#e9e6f3",
+                        "on-tertiary": "#ffffff",
+                        "tertiary-container": "#b55d00",
+                        "inverse-surface": "#303038",
+                        "on-tertiary-fixed-variant": "#703700",
+                        "on-tertiary-fixed": "#301400",
+                        "on-surface-variant": "#464554",
+                        "on-secondary-fixed-variant": "#84240d",
+                        "primary-fixed-dim": "#c0c1ff",
+                        "surface-bright": "#fcf8ff",
+                        "on-primary-container": "#fffbff",
+                        "primary-fixed": "#e1e0ff",
+                        "on-secondary-fixed": "#3d0700",
+                        "inverse-on-surface": "#f2effb",
+                        "error-container": "#ffdad6",
+                        "on-surface": "#1b1b23",
+                        "surface": "#fcf8ff",
+                        "on-background": "#1b1b23",
+                        "secondary-fixed": "#ffdad2",
+                        "surface-container-lowest": "#ffffff",
+                        "primary-container": "#6063ee",
+                        "on-error-container": "#93000a",
+                        "outline-variant": "#c7c4d7",
+                        "on-primary-fixed": "#07006c",
+                        "surface-container-highest": "#e4e1ed",
+                        "background": "#fcf8ff",
+                        "secondary-fixed-dim": "#ffb4a3",
+                        "tertiary-fixed": "#ffdcc5",
+                        "on-error": "#ffffff",
+                        "on-secondary": "#ffffff",
+                        "surface-container": "#efecf8",
+                        "tertiary-fixed-dim": "#ffb783",
+                        "surface-variant": "#e4e1ed",
+                        "inverse-primary": "#c0c1ff",
+                        "on-primary-fixed-variant": "#2f2ebe",
+                        "surface-tint": "#494bd6",
+                        "on-primary": "#ffffff",
+                        "surface-dim": "#dbd8e4"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "container_max": "1200px",
+                        "gutter": "20px",
+                        "xl": "32px",
+                        "lg": "24px",
+                        "md": "16px",
+                        "xs": "4px",
+                        "sm": "8px"
+                    },
+                    "fontFamily": {
+                        "h3": ["Plus Jakarta Sans"],
+                        "body-md": ["Be Vietnam Pro"],
+                        "h1": ["Plus Jakarta Sans"],
+                        "body-lg": ["Be Vietnam Pro"],
+                        "label-mono": ["Space Grotesk"],
+                        "h2": ["Plus Jakarta Sans"]
+                    },
+                    "fontSize": {
+                        "h3": ["24px", { "lineHeight": "1.4", "fontWeight": "700" }],
+                        "body-md": ["16px", { "lineHeight": "1.6", "fontWeight": "400" }],
+                        "h1": ["40px", { "lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "800" }],
+                        "body-lg": ["18px", { "lineHeight": "1.6", "fontWeight": "400" }],
+                        "label-mono": ["14px", { "lineHeight": "1.2", "letterSpacing": "0.05em", "fontWeight": "500" }],
+                        "h2": ["32px", { "lineHeight": "1.3", "letterSpacing": "-0.01em", "fontWeight": "700" }]
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-surface text-on-surface min-h-screen flex flex-col font-body-md">
+<!-- TopNavBar -->
+<nav class="bg-white/90 dark:bg-slate-900/90 backdrop-blur-md docked full-width top-0 z-50 border-b border-slate-100 dark:border-slate-800 shadow-[0_4px_12px_rgba(26,26,46,0.08)]">
+<div class="flex justify-between items-center px-6 h-20 w-full max-w-screen-2xl mx-auto">
+<div class="flex items-center gap-6">
+<span class="text-2xl font-black tracking-tight text-indigo-600 dark:text-indigo-400 font-['Plus_Jakarta_Sans'] font-medium">Trip Builder</span>
+<div class="hidden md:flex items-center gap-2">
+<button class="p-2 text-slate-500 dark:text-slate-400 hover:text-indigo-500 transition-colors hover:bg-slate-50 dark:hover:bg-slate-800 rounded-full transition-all duration-200">
+<span class="material-symbols-outlined">search</span>
+</button>
+<div class="flex gap-4">
+<a class="text-indigo-600 dark:text-indigo-400 font-bold border-b-2 border-indigo-600 dark:border-indigo-400 pb-1" href="#">My Trips</a>
+<a class="text-slate-500 dark:text-slate-400 hover:text-indigo-500 transition-colors" href="#">Explore</a>
+<a class="text-slate-500 dark:text-slate-400 hover:text-indigo-500 transition-colors" href="#">Guides</a>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<button class="hidden md:block bg-primary text-on-primary px-6 py-2 rounded-full font-label-mono text-label-mono shadow-[0_8px_24px_rgba(70,72,212,0.2)] hover:scale-95 transition-transform">
+                    New Trip
+                </button>
+<button class="p-2 text-slate-500 dark:text-slate-400 hover:text-indigo-500 transition-colors hover:bg-slate-50 dark:hover:bg-slate-800 rounded-full transition-all duration-200">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="p-2 text-slate-500 dark:text-slate-400 hover:text-indigo-500 transition-colors hover:bg-slate-50 dark:hover:bg-slate-800 rounded-full transition-all duration-200">
+<span class="material-symbols-outlined">settings</span>
+</button>
+<img alt="User profile" class="w-10 h-10 rounded-full object-cover border-2 border-surface-container" data-alt="Headshot of a smiling young adult with short hair against a light background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBPO_Vv8LBFDLKephdbC4q1j0r80CEiHiDuEV81xFdtniERbCDtPqEdsrFSKK4T2OM1JXPMIeYcjjNkabxi_xma9_pY5kNDf4qZd1OtBqodG7-HqZD76S09Sl-rkKKiGhf7vGkiHKDJn_i-sLAam0QANnuuMfP3lk2_S4jFel87v-YemAan-RtL-eGYIx_mziokZUVcpg5kF4MFVj3kyXCazlyfDVCpGmIwhh4XrsRJtZHwq6o9OGXYKtFosEc8qfXygTlBgPNi_90"/>
+</div>
+</div>
+</nav>
+<!-- Main Content Canvas -->
+<main class="flex-1 max-w-container_max mx-auto w-full p-lg lg:p-xl flex flex-col md:flex-row gap-xl relative">
+<!-- Left Column: Context & Feedback Panels -->
+<div class="flex-1 flex flex-col gap-lg">
+<header class="mb-md">
+<h1 class="font-h1 text-h1 text-on-surface mb-sm">Overlays &amp; Specialized Panels</h1>
+<p class="font-body-lg text-body-lg text-on-surface-variant">UI components for dynamic feedback and guidance.</p>
+</header>
+<!-- Banners Section -->
+<section class="flex flex-col gap-md">
+<h2 class="font-h3 text-h3 text-on-surface">Contextual Alerts</h2>
+<!-- Must-Book-Now (red tint) -->
+<div class="bg-error-container text-on-error-container p-md rounded-xl flex items-start gap-md shadow-[0_4px_12px_rgba(26,26,46,0.08)]">
+<span class="material-symbols-outlined text-error mt-xs" style="font-variation-settings: 'FILL' 1;">warning</span>
+<div class="flex-1">
+<p class="font-label-mono text-label-mono font-bold uppercase tracking-wider text-error mb-xs">Must Book Now</p>
+<p class="font-body-md text-body-md">Tickets for the Uffizi Gallery are selling out fast for your selected dates. Secure them today to guarantee entry.</p>
+</div>
+<button class="bg-error text-on-error px-4 py-2 rounded-full font-label-mono text-label-mono hover:opacity-90 transition-opacity whitespace-nowrap">
+                        Book
+                    </button>
+</div>
+<!-- Climate note (light blue) -->
+<div class="bg-surface-container-high text-on-surface p-md rounded-xl flex items-start gap-md shadow-[0_4px_12px_rgba(26,26,46,0.08)]">
+<span class="material-symbols-outlined text-primary mt-xs" style="font-variation-settings: 'FILL' 1;">cloud</span>
+<div class="flex-1">
+<p class="font-label-mono text-label-mono font-bold uppercase tracking-wider text-primary mb-xs">Weather Alert</p>
+<p class="font-body-md text-body-md">Expect afternoon showers in Tokyo tomorrow. Consider moving your outdoor walk to the morning.</p>
+</div>
+</div>
+<!-- Parking suggestion (amber) -->
+<div class="bg-tertiary-fixed text-on-tertiary-fixed p-md rounded-xl flex items-start gap-md shadow-[0_4px_12px_rgba(26,26,46,0.08)]">
+<span class="material-symbols-outlined text-tertiary mt-xs" style="font-variation-settings: 'FILL' 1;">local_parking</span>
+<div class="flex-1">
+<p class="font-label-mono text-label-mono font-bold uppercase tracking-wider text-tertiary mb-xs">Parking Tip</p>
+<p class="font-body-md text-body-md">Street parking near the Colosseum is limited. Use the nearby Termini Station garage for €15/day.</p>
+</div>
+</div>
+</section>
+<!-- Review Summary Card -->
+<section class="mt-lg">
+<div class="bg-surface-container-lowest p-lg rounded-[16px] shadow-[0_4px_12px_rgba(26,26,46,0.08)] border border-surface-variant relative overflow-hidden">
+<div class="absolute top-0 right-0 p-lg">
+<span class="font-label-mono text-label-mono text-outline">Oct 12 - Oct 20</span>
+</div>
+<h3 class="font-h2 text-h2 text-on-surface mb-xs">Kyoto Autumn Escape</h3>
+<p class="font-body-lg text-body-lg text-on-surface-variant mb-md flex items-center gap-2">
+<span class="material-symbols-outlined text-[20px]">location_on</span>
+                        Kyoto, Japan
+                    </p>
+<div class="flex flex-wrap gap-2 mt-md">
+<span class="px-3 py-1 bg-primary-fixed text-on-primary-fixed rounded-full font-label-mono text-sm">Couples Trip</span>
+<span class="px-3 py-1 bg-secondary-fixed text-on-secondary-fixed rounded-full font-label-mono text-sm">Culture &amp; History</span>
+<span class="px-3 py-1 bg-tertiary-fixed text-on-tertiary-fixed rounded-full font-label-mono text-sm">Foodie Focus</span>
+</div>
+</div>
+</section>
+</div>
+<!-- Right Column: Interactive Panels -->
+<div class="w-full md:w-[400px] flex flex-col gap-lg">
+<!-- Suggestion Panel -->
+<div class="bg-surface-container-lowest p-lg rounded-[16px] border border-secondary shadow-[0_8px_24px_rgba(165,59,34,0.1)] relative">
+<div class="absolute -top-3 right-lg bg-surface-container-lowest px-2">
+<span class="font-label-mono text-[12px] text-secondary font-bold">1/3 Suggestions</span>
+</div>
+<h3 class="font-h3 text-h3 text-on-surface flex items-center gap-2 mb-sm">
+<span class="material-symbols-outlined text-secondary">alt_route</span>
+                    Alternative Route
+                </h3>
+<p class="font-body-md text-body-md text-on-surface-variant mb-md">
+                    Taking the scenic coastal train takes 45 mins longer but offers breathtaking views of the Amalfi coast.
+                </p>
+<div class="flex gap-sm">
+<button class="flex-1 bg-surface-container text-on-surface py-2 rounded-full font-label-mono hover:bg-surface-variant transition-colors">Deny</button>
+<button class="flex-1 bg-secondary text-on-secondary py-2 rounded-full font-label-mono hover:opacity-90 transition-opacity shadow-[0_4px_12px_rgba(165,59,34,0.3)]">Approve</button>
+</div>
+</div>
+<!-- Transit Indicator (Dashed line) -->
+<div class="flex items-center gap-4 py-2 px-md">
+<div class="w-2 h-2 rounded-full bg-outline"></div>
+<div class="flex-1 border-t-2 border-dashed border-outline-variant relative">
+<div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-surface px-2 text-outline flex items-center gap-1 font-label-mono text-sm">
+<span class="material-symbols-outlined text-[16px]">directions_walk</span>
+                        12 min walk
+                    </div>
+</div>
+<div class="w-2 h-2 rounded-full border-2 border-outline"></div>
+</div>
+<!-- What's Nearby Panel -->
+<div class="bg-primary-fixed-dim/20 p-lg rounded-[16px] border border-primary-fixed-dim shadow-[0_4px_12px_rgba(26,26,46,0.08)]">
+<h3 class="font-h3 text-h3 text-on-primary-container flex items-center gap-2 mb-md">
+<span class="material-symbols-outlined">explore</span>
+                    What's Nearby
+                </h3>
+<ul class="flex flex-col gap-sm">
+<li class="bg-surface-container-lowest p-sm rounded-lg flex items-center gap-md">
+<div class="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center text-xl">☕</div>
+<div class="flex-1">
+<p class="font-body-md text-body-md font-medium text-on-surface">Arabica Coffee</p>
+<p class="font-label-mono text-xs text-on-surface-variant">2 min walk • $$</p>
+</div>
+</li>
+<li class="bg-surface-container-lowest p-sm rounded-lg flex items-center gap-md">
+<div class="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center text-xl">🏛️</div>
+<div class="flex-1">
+<p class="font-body-md text-body-md font-medium text-on-surface">National Museum</p>
+<p class="font-label-mono text-xs text-on-surface-variant">5 min walk • €12</p>
+</div>
+</li>
+</ul>
+</div>
+<!-- Budget Panel -->
+<div class="bg-surface-container-lowest p-lg rounded-[16px] shadow-[0_4px_12px_rgba(26,26,46,0.08)] border border-surface-variant">
+<div class="flex justify-between items-center mb-md cursor-pointer group">
+<h3 class="font-h3 text-h3 text-on-surface flex items-center gap-2">
+<span class="material-symbols-outlined">account_balance_wallet</span>
+                        Budget Overview
+                    </h3>
+<span class="material-symbols-outlined text-outline group-hover:text-primary transition-colors">expand_less</span>
+</div>
+<div class="flex flex-col gap-sm border-t border-surface-variant pt-md">
+<div class="flex justify-between items-center">
+<span class="font-body-md text-body-md text-on-surface-variant">Activities</span>
+<span class="font-label-mono text-label-mono font-bold">$450</span>
+</div>
+<div class="w-full bg-surface-variant rounded-full h-2 overflow-hidden">
+<div class="bg-primary h-full w-[60%] rounded-full"></div>
+</div>
+<div class="flex justify-between items-center mt-sm">
+<span class="font-body-md text-body-md text-on-surface-variant">Meals</span>
+<span class="font-label-mono text-label-mono font-bold">$320</span>
+</div>
+<div class="w-full bg-surface-variant rounded-full h-2 overflow-hidden">
+<div class="bg-secondary h-full w-[40%] rounded-full"></div>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Guide Narration Slide-over (Simulated statically for design) -->
+<div class="fixed top-20 right-0 bottom-0 w-[380px] bg-surface-container-lowest shadow-[-8px_0_24px_rgba(26,26,46,0.1)] border-l border-surface-variant z-40 translate-x-4 md:translate-x-0 hidden lg:flex flex-col">
+<div class="p-lg border-b border-surface-variant flex justify-between items-center bg-surface-container/50">
+<h3 class="font-h3 text-h3 text-on-surface flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">headphones</span>
+                Local Guide
+            </h3>
+<button class="p-2 hover:bg-surface-variant rounded-full transition-colors text-outline">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+<div class="flex-1 overflow-y-auto p-lg flex flex-col gap-md">
+<div class="w-full h-48 rounded-xl bg-surface-variant overflow-hidden relative">
+<img alt="Fushimi Inari Taisha" class="w-full h-full object-cover" data-alt="Bright orange torii gates lining a path up a mountain in Kyoto surrounded by lush green trees" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBz_jJLAal-p79kW9q5FpPFxweG1chJX1ddRNEsPrHGPLwhzpbKK428T1Xz5zxC0uIcQ9RS9iutSarRCNVGPQCiba1wKUYrr7m3w6dGYeKQ0Iki8FKkKO0YB-BrBktQhcNMp5slklDUvwijgXCMXBOPQvrFflwhUflp_uLv7F-dXmZsz72z5-Caa_EIQi9nEQwQ3HYjhNLzm1iDUxOhjzv3v2Ea3-BPDHybb7vdT0yeikZVnDmznKtKbqBf1zrCx-SfbE_t199E_8A"/>
+<div class="absolute bottom-2 right-2 bg-inverse-surface/80 text-inverse-on-surface px-3 py-1 rounded-full font-label-mono text-sm flex items-center gap-1 backdrop-blur-sm">
+<span class="material-symbols-outlined text-[16px]">play_arrow</span>
+                    3:45
+                </div>
+</div>
+<h4 class="font-h2 text-h2 text-on-surface mt-sm">Fushimi Inari Shrine</h4>
+<div class="bg-surface-container p-md rounded-xl text-on-surface-variant font-body-lg leading-relaxed border-l-4 border-primary">
+                "As you walk through these thousands of vermilion torii gates, notice the fox statues. In Shinto belief, foxes (kitsune) are the messengers of Inari, the god of rice and prosperity..."
+            </div>
+<div class="mt-auto pt-md flex items-center justify-center gap-6 text-primary">
+<button class="p-3 hover:bg-primary-fixed rounded-full transition-colors"><span class="material-symbols-outlined">skip_previous</span></button>
+<button class="p-4 bg-primary text-on-primary rounded-full shadow-[0_8px_24px_rgba(70,72,212,0.3)] hover:scale-105 transition-transform"><span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">pause</span></button>
+<button class="p-3 hover:bg-primary-fixed rounded-full transition-colors"><span class="material-symbols-outlined">skip_next</span></button>
+</div>
+</div>
+</div>
+<!-- Footer -->
+<footer class="w-full py-12 bg-slate-50 dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 flat no shadows mt-xl">
+<div class="flex flex-col md:flex-row justify-between items-center px-8 max-w-screen-2xl mx-auto gap-4">
+<span class="font-bold text-slate-900 dark:text-white font-['Plus_Jakarta_Sans'] text-sm">© 2024 Trip Builder. Your vibrant travel companion.</span>
+<div class="flex gap-6">
+<a class="text-slate-500 dark:text-slate-400 hover:text-indigo-500 dark:hover:text-indigo-300 transition-colors opacity-80 hover:opacity-100 font-['Plus_Jakarta_Sans'] text-sm" href="#">Privacy Policy</a>
+<a class="text-slate-500 dark:text-slate-400 hover:text-indigo-500 dark:hover:text-indigo-300 transition-colors opacity-80 hover:opacity-100 font-['Plus_Jakarta_Sans'] text-sm" href="#">Terms of Service</a>
+<a class="text-slate-500 dark:text-slate-400 hover:text-indigo-500 dark:hover:text-indigo-300 transition-colors opacity-80 hover:opacity-100 font-['Plus_Jakarta_Sans'] text-sm" href="#">Help Center</a>
+<a class="text-slate-500 dark:text-slate-400 hover:text-indigo-500 dark:hover:text-indigo-300 transition-colors opacity-80 hover:opacity-100 font-['Plus_Jakarta_Sans'] text-sm" href="#">Contact Us</a>
+</div>
+</div>
+</footer>
+</body></html>

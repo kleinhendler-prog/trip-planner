@@ -3,7 +3,8 @@
  */
 
 import { callClaudeJSON } from '../claude';
-import { supabaseServer as supabase } from '../supabase';
+import { db, trips, user_profiles, generation_jobs } from '../db';
+import { eq } from 'drizzle-orm';
 import { validateItinerary } from './qa-simulator';
 
 /* ── Rich Itinerary Types ────────────────────────────────── */
@@ -436,24 +437,18 @@ async function generateMultiSegmentItinerary(
   };
 }
 
-/** Append a log entry to the trip's generation_log column */
+/** Append a log entry to the trip's generation_log column (read-modify-write) */
 async function appendLog(tripId: string, message: string) {
   const entry = { t: new Date().toISOString(), msg: message };
   console.log(`[Gen ${tripId}] ${message}`);
   try {
-    await (supabase as any).rpc('append_generation_log', { trip_id: tripId, entry: JSON.stringify(entry) }).catch(() => {
-      // Fallback: read-modify-write if RPC doesn't exist
-      return (supabase as any)
-        .from('trips')
-        .select('generation_log')
-        .eq('id', tripId)
-        .single()
-        .then(({ data }: any) => {
-          const log = Array.isArray(data?.generation_log) ? data.generation_log : [];
-          log.push(entry);
-          return (supabase as any).from('trips').update({ generation_log: log }).eq('id', tripId);
-        });
-    });
+    const rows = await db
+      .select({ generation_log: trips.generation_log })
+      .from(trips)
+      .where(eq(trips.id, tripId));
+    const log = Array.isArray(rows[0]?.generation_log) ? (rows[0].generation_log as any[]) : [];
+    log.push(entry);
+    await db.update(trips).set({ generation_log: log }).where(eq(trips.id, tripId));
   } catch {
     // Non-critical — don't let logging failures break generation
   }
@@ -461,18 +456,15 @@ async function appendLog(tripId: string, message: string) {
 
 export async function generateTripItinerary(tripId: string): Promise<SimpleItinerary> {
   // Fetch trip
-  await appendLog(tripId, 'Starting generation — fetching trip data');
-  const { data: trip, error } = await (supabase as any)
-    .from('trips')
-    .select('*')
-    .eq('id', tripId)
-    .single();
+  const tripRows = await db.select().from(trips).where(eq(trips.id, tripId));
+  const trip: any = tripRows[0];
 
-  if (error || !trip) throw new Error('Trip not found');
+  if (!trip) throw new Error('Trip not found');
 
   // Clear previous log and record job start
-  await (supabase as any).from('trips').update({ generation_log: [] }).eq('id', tripId);
-  await (supabase as any).from('generation_jobs').insert({
+  await db.update(trips).set({ generation_log: [] }).where(eq(trips.id, tripId));
+  await appendLog(tripId, 'Starting generation — fetching trip data');
+  await db.insert(generation_jobs).values({
     trip_id: tripId,
     step: 'generating_itinerary',
     status: 'running',
@@ -481,13 +473,12 @@ export async function generateTripItinerary(tripId: string): Promise<SimpleItine
   try {
     // Fetch user profile
     await appendLog(tripId, 'Loading your travel profile');
-    const { data: profileRow } = await (supabase as any)
-      .from('user_profiles')
-      .select('profile')
-      .eq('user_id', trip.user_id)
-      .single();
+    const profileRows = await db
+      .select({ profile: user_profiles.profile })
+      .from(user_profiles)
+      .where(eq(user_profiles.user_id, trip.user_id));
 
-    const userProfile = profileRow?.profile || {};
+    const userProfile = (profileRows[0]?.profile as any) || {};
     const profileKeys = Object.keys(userProfile).filter(k => {
       const v = userProfile[k];
       return v && (Array.isArray(v) ? v.length > 0 : true);
@@ -530,9 +521,9 @@ export async function generateTripItinerary(tripId: string): Promise<SimpleItine
 
     // Save to trip (include QA results)
     await appendLog(tripId, 'Saving itinerary');
-    await (supabase as any)
-      .from('trips')
-      .update({
+    await db
+      .update(trips)
+      .set({
         itinerary: {
           ...itinerary,
           qa: {
@@ -544,11 +535,11 @@ export async function generateTripItinerary(tripId: string): Promise<SimpleItine
         },
         status: 'ready',
       })
-      .eq('id', tripId);
+      .where(eq(trips.id, tripId));
 
     await appendLog(tripId, 'Done! Your trip is ready.');
 
-    await (supabase as any).from('generation_jobs').insert({
+    await db.insert(generation_jobs).values({
       trip_id: tripId,
       step: 'generating_itinerary',
       status: 'completed',
@@ -559,12 +550,9 @@ export async function generateTripItinerary(tripId: string): Promise<SimpleItine
     const errMsg = String(err?.message || err).substring(0, 300);
     await appendLog(tripId, `Error: ${errMsg}`);
 
-    await (supabase as any)
-      .from('trips')
-      .update({ status: 'failed' })
-      .eq('id', tripId);
+    await db.update(trips).set({ status: 'failed' }).where(eq(trips.id, tripId));
 
-    await (supabase as any).from('generation_jobs').insert({
+    await db.insert(generation_jobs).values({
       trip_id: tripId,
       step: 'generating_itinerary',
       status: 'failed',

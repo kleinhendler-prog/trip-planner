@@ -4,7 +4,8 @@
  */
 
 import { auth } from '@/app/api/auth/config';
-import { supabaseServer as supabase } from '@/lib/supabase';
+import { db, trips } from '@/lib/db';
+import { and, eq } from 'drizzle-orm';
 
 
 interface BookToggleRequest {
@@ -37,14 +38,13 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     }
 
     // Verify trip belongs to user
-    const { data: trip, error: tripError } = await (supabase as any)
-      .from('trips')
-      .select('booked_items')
-      .eq('id', id)
-      .eq('user_id', session.user.id)
-      .single();
+    const rows = await db
+      .select({ booked_items: trips.booked_items })
+      .from(trips)
+      .where(and(eq(trips.id, id), eq(trips.user_id, session.user.id)));
+    const trip = rows[0];
 
-    if (tripError || !trip) {
+    if (!trip) {
       return Response.json(
         { error: 'Trip not found' },
         { status: 404 }
@@ -65,17 +65,13 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     }
 
     // Update trip atomically
-    const { error: updateError } = await (supabase as any)
-      .from('trips')
-      .update({
+    await db
+      .update(trips)
+      .set({
         booked_items: updatedBookedItems,
-        updatedAt: new Date(),
+        updated_at: new Date(),
       })
-      .eq('id', id);
-
-    if (updateError) {
-      throw updateError;
-    }
+      .where(eq(trips.id, id));
 
     return Response.json({ success: true, booked_items: updatedBookedItems });
   } catch (error) {

@@ -2,17 +2,33 @@
  * Destination Sources API Routes
  * GET: List destination sources with filters
  * POST: Add new source
+ *
+ * DB rows are snake_case; responses are mapped to the camelCase
+ * DestinationSourceInfo shape the sources page renders.
  */
 
 import { auth } from '@/app/api/auth/config';
-import { supabaseServer as supabase } from '@/lib/supabase';
+import { db, destination_sources } from '@/lib/db';
+import { and, desc, eq, type SQL } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 
-interface GetParams {
-  destination_key?: string;
-  audience_type?: string;
-  trust_rating?: number;
-  active?: boolean;
+function toApiShape(row: any) {
+  return {
+    id: row.id,
+    destinationKey: row.destination_key,
+    audienceType: row.audience_type,
+    domain: row.domain,
+    sourceName: row.source_name,
+    focus: row.focus,
+    content: row.content,
+    sourceUrl: row.source_url,
+    trustRating: row.trust_rating,
+    addedBy: row.added_by,
+    createdBy: row.created_by,
+    upvotes: row.upvotes,
+    downvotes: row.downvotes,
+    active: row.active,
+  };
 }
 
 /**
@@ -32,34 +48,20 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const destinationKey = searchParams.get('destination_key');
     const audienceType = searchParams.get('audience_type');
-    const trustRating = searchParams.get('trust_rating');
     const active = searchParams.get('active');
 
-    let query = supabase.from('destination_sources').select('*');
+    const conditions: SQL[] = [];
+    if (destinationKey) conditions.push(eq(destination_sources.destination_key, destinationKey));
+    if (audienceType) conditions.push(eq(destination_sources.audience_type, audienceType));
+    if (active !== null) conditions.push(eq(destination_sources.active, active === 'true'));
 
-    if (destinationKey) {
-      query = query.eq('destination_key', destinationKey);
-    }
+    const rows = await db
+      .select()
+      .from(destination_sources)
+      .where(conditions.length > 0 ? and(...conditions) : undefined)
+      .orderBy(desc(destination_sources.trust_rating), desc(destination_sources.upvotes));
 
-    if (audienceType) {
-      query = query.eq('audience_type', audienceType);
-    }
-
-    if (trustRating) {
-      query = query.gte('trust_rating', parseInt(trustRating, 10));
-    }
-
-    if (active !== null) {
-      query = query.eq('active', active === 'true');
-    }
-
-    const { data: sources, error } = await query.order('trust_rating', { ascending: false });
-
-    if (error) {
-      throw error;
-    }
-
-    return Response.json(sources || []);
+    return Response.json(rows.map(toApiShape));
   } catch (error) {
     console.error('GET /api/sources error:', error);
     return Response.json(
@@ -84,40 +86,36 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json() as any;
+    const destinationKey = body.destination_key || body.destinationKey;
 
-    if (!body.destination_key || !body.content) {
+    if (!destinationKey) {
       return Response.json(
-        { error: 'Missing required fields: destination_key, content' },
+        { error: 'Missing required field: destination_key' },
         { status: 400 }
       );
     }
 
-    const sourceData = {
-      id: uuidv4(),
-      destination_key: body.destination_key,
-      audience_type: body.audience_type || 'general',
-      content: body.content,
-      source_url: body.source_url,
-      trust_rating: body.trust_rating || 5, // Default to 5 stars
-      upvotes: 0,
-      downvotes: 0,
-      active: true,
-      createdBy: session.user.id,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
+    const inserted = await db
+      .insert(destination_sources)
+      .values({
+        id: uuidv4(),
+        destination_key: destinationKey,
+        audience_type: body.audience_type || body.audienceType || 'general',
+        domain: body.domain,
+        source_name: body.source_name || body.sourceName,
+        focus: body.focus,
+        content: body.content,
+        source_url: body.source_url || body.sourceUrl,
+        trust_rating: body.trust_rating || body.trustRating || 'medium',
+        added_by: 'user_approved',
+        created_by: session.user.id,
+        upvotes: 0,
+        downvotes: 0,
+        active: true,
+      })
+      .returning();
 
-    const { data, error } = await (supabase as any)
-      .from('destination_sources')
-      .insert([sourceData as any])
-      .select()
-      .single();
-
-    if (error) {
-      throw error;
-    }
-
-    return Response.json(data, { status: 201 });
+    return Response.json(toApiShape(inserted[0]), { status: 201 });
   } catch (error) {
     console.error('POST /api/sources error:', error);
     return Response.json(

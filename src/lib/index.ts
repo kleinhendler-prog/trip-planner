@@ -27,7 +27,7 @@ export {
 } from './source-resolver';
 
 // Trip generation
-export { GenerationPipeline, generateTrip } from './generation';
+export { generateTripItinerary } from './generation/simple-pipeline';
 
 // Database
-export { supabase } from './supabase';
+export { db } from './db';

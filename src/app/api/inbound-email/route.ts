@@ -5,7 +5,8 @@
  */
 
 import { callClaudeJSON } from '@/lib/claude';
-import { supabaseServer as supabase } from '@/lib/supabase';
+import { db, trips, trip_confirmations } from '@/lib/db';
+import { eq } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 
 interface InboundEmailRequest {
@@ -47,13 +48,17 @@ export async function POST(request: Request) {
     const providedToken = toMatch[2];
 
     // Verify token matches trip's email token
-    const { data: trip, error: tripError } = await (supabase as any)
-      .from('trips')
-      .select('id, email_confirmation_token, email_confirmed_at')
-      .eq('id', tripId)
-      .single();
+    const tripRows = await db
+      .select({
+        id: trips.id,
+        email_confirmation_token: trips.email_confirmation_token,
+        email_confirmed_at: trips.email_confirmed_at,
+      })
+      .from(trips)
+      .where(eq(trips.id, tripId));
+    const trip = tripRows[0];
 
-    if (tripError || !trip) {
+    if (!trip) {
       return Response.json(
         { error: 'Trip not found' },
         { status: 404 }
@@ -77,11 +82,11 @@ export async function POST(request: Request) {
     );
 
     // Create trip confirmation record
-    const confirmationData = {
+    await db.insert(trip_confirmations).values({
       id: uuidv4(),
-      tripId: tripId,
-      confirmedBy: body.from,
-      confirmationType: parsedEmail.type || 'email_response',
+      trip_id: tripId,
+      confirmed_by: body.from,
+      confirmation_type: parsedEmail.type || 'email_response',
       content: {
         subject: body.subject,
         from: body.from,
@@ -89,26 +94,17 @@ export async function POST(request: Request) {
         parsedContent: parsedEmail,
       },
       confirmed: true,
-      confirmedAt: new Date(),
-      createdAt: new Date(),
-    };
-
-    const { error: insertError } = await (supabase as any)
-      .from('trip_confirmations')
-      .insert([confirmationData as any]);
-
-    if (insertError) {
-      throw insertError;
-    }
+      confirmed_at: new Date(),
+    });
 
     // Update trip with confirmation status
-    await (supabase as any)
-      .from('trips')
-      .update({
+    await db
+      .update(trips)
+      .set({
         email_confirmed_at: new Date(),
-        updatedAt: new Date(),
+        updated_at: new Date(),
       })
-      .eq('id', tripId);
+      .where(eq(trips.id, tripId));
 
     return Response.json({
       success: true,

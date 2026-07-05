@@ -4,8 +4,9 @@
  */
 
 import { auth } from '@/app/api/auth/config';
-import { supabaseServer as supabase } from '@/lib/supabase';
-import type { SimpleItinerary, ItineraryDay } from '@/lib/generation/simple-pipeline';
+import { db, trips } from '@/lib/db';
+import { and, eq } from 'drizzle-orm';
+import type { SimpleItinerary } from '@/lib/generation/simple-pipeline';
 
 interface ReorderRequest {
   from_index: number;  // 0-based day index
@@ -27,14 +28,13 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     }
 
     // Fetch trip
-    const { data: trip, error: tripError } = await (supabase as any)
-      .from('trips')
-      .select('*')
-      .eq('id', id)
-      .eq('user_id', session.user.id)
-      .single();
+    const tripRows = await db
+      .select()
+      .from(trips)
+      .where(and(eq(trips.id, id), eq(trips.user_id, session.user.id)));
+    const trip: any = tripRows[0];
 
-    if (tripError || !trip) {
+    if (!trip) {
       return Response.json({ error: 'Trip not found' }, { status: 404 });
     }
 
@@ -79,12 +79,10 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
 
     const updatedItinerary = { ...itinerary, days: newDays };
 
-    const { error: updateError } = await (supabase as any)
-      .from('trips')
-      .update({ itinerary: updatedItinerary })
-      .eq('id', id);
-
-    if (updateError) throw updateError;
+    await db
+      .update(trips)
+      .set({ itinerary: updatedItinerary, updated_at: new Date() })
+      .where(eq(trips.id, id));
 
     return Response.json({
       success: true,

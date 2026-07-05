@@ -1,16 +1,19 @@
 /**
  * Duplicate Trip API Route
- * POST: Duplicate trip as new draft
+ * POST: Duplicate trip as a new copy
+ *
+ * Rewritten 2026-07-04 for the JSONB itinerary model — the original version
+ * copied rows from days/activities/meals tables that no longer exist.
  */
 
 import { auth } from '@/app/api/auth/config';
-import { supabaseServer as supabase } from '@/lib/supabase';
+import { db, trips } from '@/lib/db';
+import { and, eq } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
-
 
 /**
  * POST /api/trips/[id]/duplicate
- * Create a copy of the trip as a new draft
+ * Create a copy of the trip (itinerary included if one exists)
  */
 export async function POST(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -24,22 +27,14 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
 
     const { id } = await params;
 
-    // Verify trip belongs to user and get full details
-    const { data: trip, error: tripError } = await (supabase as any)
-      .from('trips')
-      .select(`
-        *,
-        days (
-          *,
-          activities (*),
-          meals (*)
-        )
-      `)
-      .eq('id', id)
-      .eq('user_id', session.user.id)
-      .single();
+    // Verify trip belongs to user and get full row
+    const rows = await db
+      .select()
+      .from(trips)
+      .where(and(eq(trips.id, id), eq(trips.user_id, session.user.id)));
+    const trip: any = rows[0];
 
-    if (tripError || !trip) {
+    if (!trip) {
       return Response.json(
         { error: 'Trip not found' },
         { status: 404 }
@@ -47,110 +42,29 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
     }
 
     const newTripId = uuidv4();
-    const now = new Date();
+    const profile = (trip.profile as any) || {};
 
-    // Create new trip with copied data
-    const newTripData = {
+    await db.insert(trips).values({
       id: newTripId,
-      userId: session.user.id,
-      title: `${trip.title} (Copy)`,
+      user_id: session.user.id,
       destination: trip.destination,
-      destinationCoordinates: trip.destinationCoordinates,
-      startDate: trip.startDate,
-      endDate: trip.endDate,
-      travelers: trip.travelers,
-      tripType: trip.tripType,
-      preferences: trip.preferences,
-      status: 'planning', // Draft status
-      notes: trip.notes,
-      createdAt: now,
-      updatedAt: now,
-    };
-
-    const { error: insertTripError } = await (supabase as any)
-      .from('trips')
-      .insert([newTripData as any]);
-
-    if (insertTripError) {
-      throw insertTripError;
-    }
-
-    // Copy days and their activities/meals
-    if (trip.days && trip.days.length > 0) {
-      for (const day of trip.days) {
-        const newDayId = uuidv4();
-
-        const newDayData = {
-          id: newDayId,
-          tripId: newTripId,
-          date: day.date,
-          dayNumber: day.dayNumber,
-          theme: day.theme,
-          notes: day.notes,
-          weather: day.weather,
-          colorHex: day.colorHex,
-        };
-
-        const { error: insertDayError } = await (supabase as any)
-          .from('days')
-          .insert([newDayData as any]);
-
-        if (insertDayError) {
-          throw insertDayError;
-        }
-
-        // Copy activities
-        if (day.activities && day.activities.length > 0) {
-          const activitiesToInsert = day.activities.map((activity: any) => ({
-            id: uuidv4(),
-            dayId: newDayId,
-            title: activity.title,
-            description: activity.description,
-            type: activity.type,
-            location: activity.location,
-            googlePlacesId: activity.googlePlacesId,
-            startTime: activity.startTime,
-            endTime: activity.endTime,
-            duration: activity.duration,
-            estimatedCost: activity.estimatedCost,
-            notes: activity.notes,
-            bookingUrl: activity.bookingUrl,
-            externalLinks: activity.externalLinks,
-            order: activity.order,
-          }));
-
-          const { error: insertActivitiesError } = await (supabase as any)
-            .from('activities')
-            .insert(activitiesToInsert as any);
-
-          if (insertActivitiesError) {
-            throw insertActivitiesError;
-          }
-        }
-
-        // Copy meals
-        if (day.meals && day.meals.length > 0) {
-          const mealsToInsert = day.meals.map((meal: any) => ({
-            id: uuidv4(),
-            dayId: newDayId,
-            type: meal.type,
-            restaurant: meal.restaurant,
-            startTime: meal.startTime,
-            estimatedCost: meal.estimatedCost,
-            notes: meal.notes,
-            order: meal.order,
-          }));
-
-          const { error: insertMealsError } = await (supabase as any)
-            .from('meals')
-            .insert(mealsToInsert as any);
-
-          if (insertMealsError) {
-            throw insertMealsError;
-          }
-        }
-      }
-    }
+      start_date: trip.start_date,
+      end_date: trip.end_date,
+      profile: {
+        ...profile,
+        title: profile.title ? `${profile.title} (Copy)` : 'Trip (Copy)',
+      },
+      itinerary: trip.itinerary,
+      status: trip.itinerary ? 'ready' : 'draft',
+      trip_type: trip.trip_type,
+      trip_overrides: trip.trip_overrides,
+      weather_tier: trip.weather_tier,
+      weather_data: trip.weather_data,
+      currency: trip.currency,
+      daily_budget_target: trip.daily_budget_target,
+      booked_items: [],
+      generation_log: [],
+    });
 
     return Response.json({
       success: true,

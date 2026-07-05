@@ -3,11 +3,18 @@
  * POST: Increment upvotes/downvotes and auto-adjust trust
  */
 
-import { supabaseServer as supabase } from '@/lib/supabase';
-
+import { db, destination_sources } from '@/lib/db';
+import { eq } from 'drizzle-orm';
 
 interface VoteRequest {
   vote: 'up' | 'down';
+}
+
+/** Trust tiers are text: degrade one step per threshold */
+function degradeTrust(tier: string | null): string {
+  if (tier === 'high') return 'medium';
+  if (tier === 'medium') return 'low';
+  return 'low';
 }
 
 /**
@@ -29,57 +36,48 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     }
 
     // Get current source
-    const { data: source, error: fetchError } = await (supabase as any)
-      .from('destination_sources')
-      .select('upvotes, downvotes, trust_rating, active')
-      .eq('id', id)
-      .single();
+    const rows = await db
+      .select({
+        upvotes: destination_sources.upvotes,
+        downvotes: destination_sources.downvotes,
+        trust_rating: destination_sources.trust_rating,
+        active: destination_sources.active,
+      })
+      .from(destination_sources)
+      .where(eq(destination_sources.id, id));
+    const source = rows[0];
 
-    if (fetchError || !source) {
+    if (!source) {
       return Response.json(
         { error: 'Source not found' },
         { status: 404 }
       );
     }
 
-    const currentUpvotes = source.upvotes || 0;
-    const currentDownvotes = source.downvotes || 0;
+    const upvotes = (source.upvotes || 0) + (vote === 'up' ? 1 : 0);
+    const downvotes = (source.downvotes || 0) + (vote === 'down' ? 1 : 0);
 
-    // Update votes
-    const updateData: any = {
-      updatedAt: new Date(),
+    const updateData: Record<string, unknown> = {
+      upvotes,
+      downvotes,
+      updated_at: new Date(),
     };
 
-    if (vote === 'up') {
-      updateData.upvotes = currentUpvotes + 1;
-    } else {
-      updateData.downvotes = currentDownvotes + 1;
-    }
-
-    // Calculate net downvotes
-    const netDownvotes = updateData.downvotes - updateData.upvotes;
-
     // Auto-adjust trust based on net downvotes
+    const netDownvotes = downvotes - upvotes;
     if (netDownvotes >= 6) {
-      // Auto-deactivate
       updateData.active = false;
-      updateData.trust_rating = 0;
+      updateData.trust_rating = 'low';
     } else if (netDownvotes >= 3) {
-      // Auto-degrade trust
-      updateData.trust_rating = Math.max(0, (source.trust_rating || 5) - 1);
+      updateData.trust_rating = degradeTrust(source.trust_rating);
     }
 
-    // Perform update
-    const { data, error: updateError } = await (supabase as any)
-      .from('destination_sources')
-      .update(updateData)
-      .eq('id', id)
-      .select()
-      .single();
-
-    if (updateError) {
-      throw updateError;
-    }
+    const updated = await db
+      .update(destination_sources)
+      .set(updateData)
+      .where(eq(destination_sources.id, id))
+      .returning();
+    const data = updated[0];
 
     return Response.json({
       success: true,

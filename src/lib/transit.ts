@@ -1,4 +1,5 @@
-import { supabase } from './supabase';
+import { db, transit_cache } from './db';
+import { and, eq, gt } from 'drizzle-orm';
 
 interface OSRMResponse {
   routes: Array<{
@@ -134,23 +135,24 @@ async function getTransitCache(
   key: string
 ): Promise<{ durationMinutes: number; distanceKm: number } | null> {
   try {
-    const { data, error } = await (supabase as any)
-      .from('transit_cache')
-      .select('duration_minutes,distance_km')
-      .eq('cache_key', key)
-      .gt(
-        'cached_at',
-        new Date(Date.now() - TRANSIT_CACHE_HOURS * 60 * 60 * 1000).toISOString()
-      )
-      .maybeSingle();
+    const cutoff = new Date(Date.now() - TRANSIT_CACHE_HOURS * 60 * 60 * 1000);
+    const rows = await db
+      .select({
+        duration_minutes: transit_cache.duration_minutes,
+        distance_km: transit_cache.distance_km,
+      })
+      .from(transit_cache)
+      .where(and(eq(transit_cache.cache_key, key), gt(transit_cache.cached_at, cutoff)))
+      .limit(1);
 
-    if (error || !data) {
+    const data = rows[0];
+    if (!data) {
       return null;
     }
 
     return {
-      durationMinutes: (data as any).duration_minutes,
-      distanceKm: (data as any).distance_km,
+      durationMinutes: data.duration_minutes as number,
+      distanceKm: data.distance_km as number,
     };
   } catch {
     return null;
@@ -165,12 +167,16 @@ async function setTransitCache(
   data: { durationMinutes: number; distanceKm: number }
 ): Promise<void> {
   try {
-    await (supabase as any).from('transit_cache').upsert({
+    const row = {
       cache_key: key,
       duration_minutes: data.durationMinutes,
       distance_km: data.distanceKm,
-      cached_at: new Date().toISOString(),
-    });
+      cached_at: new Date(),
+    };
+    await db
+      .insert(transit_cache)
+      .values(row)
+      .onConflictDoUpdate({ target: transit_cache.cache_key, set: row });
   } catch (error) {
     console.warn('Failed to cache transit data:', error);
   }

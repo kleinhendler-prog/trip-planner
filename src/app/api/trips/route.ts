@@ -5,7 +5,8 @@
  */
 
 import { auth } from '@/app/api/auth/config';
-import { supabaseServer as supabase } from '@/lib/supabase';
+import { db, trips } from '@/lib/db';
+import { and, desc, eq, gte } from 'drizzle-orm';
 // generation is triggered by a separate endpoint after trip creation
 import type { CreateTripInput } from '@/types/index';
 import { v4 as uuidv4 } from 'uuid';
@@ -30,17 +31,13 @@ export async function GET() {
       );
     }
 
-    const { data: trips, error } = await (supabase as any)
-      .from('trips')
-      .select('*')
-      .eq('user_id', session.user.id)
-      .order('created_at', { ascending: false });
+    const rows = await db
+      .select()
+      .from(trips)
+      .where(eq(trips.user_id, session.user.id))
+      .orderBy(desc(trips.created_at));
 
-    if (error) {
-      throw error;
-    }
-
-    return Response.json(trips || []);
+    return Response.json(rows);
   } catch (error) {
     console.error('GET /api/trips error:', error);
     return Response.json(
@@ -77,17 +74,12 @@ export async function POST(request: Request) {
 
     // Check rate limit
     const oneHourAgo = new Date(Date.now() - RATE_LIMIT_WINDOW_MS);
-    const { data: recentTrips, error: rateLimitError } = await (supabase as any)
-      .from('trips')
-      .select('id')
-      .eq('user_id', session.user.id)
-      .gte('created_at', oneHourAgo.toISOString());
+    const recentTrips = await db
+      .select({ id: trips.id })
+      .from(trips)
+      .where(and(eq(trips.user_id, session.user.id), gte(trips.created_at, oneHourAgo)));
 
-    if (rateLimitError) {
-      throw rateLimitError;
-    }
-
-    if ((recentTrips?.length ?? 0) >= RATE_LIMIT_MAX) {
+    if (recentTrips.length >= RATE_LIMIT_MAX) {
       return Response.json(
         { error: 'Rate limit exceeded: maximum 10 trips per hour' },
         { status: 429 }
@@ -95,11 +87,10 @@ export async function POST(request: Request) {
     }
 
     const tripId = uuidv4();
-    const now = new Date();
 
     // Create trip with status='generating'
     const body2 = body as any;
-    const tripData = {
+    await db.insert(trips).values({
       id: tripId,
       user_id: session.user.id,
       destination: body.destination,
@@ -114,15 +105,7 @@ export async function POST(request: Request) {
       trip_type: body2.tripStyle || 'single_city',
       trip_overrides: body2.tripOverrides || {},
       status: 'generating',
-    };
-
-    const { error: insertError } = await (supabase as any)
-      .from('trips')
-      .insert([tripData as any]);
-
-    if (insertError) {
-      throw insertError;
-    }
+    });
 
     // Return immediately - generation will be triggered by the trip page
     return Response.json({ id: tripId, trip_id: tripId }, { status: 201 });

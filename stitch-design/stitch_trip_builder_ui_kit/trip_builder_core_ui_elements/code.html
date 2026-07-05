@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Trip Builder - UI Library</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;700;800&amp;family=Be+Vietnam+Pro:wght@400;500;600&amp;family=Space+Grotesk:wght@500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-tertiary-container": "#fffbff",
+                        "on-secondary-container": "#711601",
+                        "outline": "#767586",
+                        "surface-container-low": "#f5f2fe",
+                        "primary": "#4648d4",
+                        "error": "#ba1a1a",
+                        "tertiary": "#904900",
+                        "secondary-container": "#fe7d5e",
+                        "secondary": "#a53b22",
+                        "surface-container-high": "#e9e6f3",
+                        "on-tertiary": "#ffffff",
+                        "tertiary-container": "#b55d00",
+                        "inverse-surface": "#303038",
+                        "on-tertiary-fixed-variant": "#703700",
+                        "on-tertiary-fixed": "#301400",
+                        "on-surface-variant": "#464554",
+                        "on-secondary-fixed-variant": "#84240d",
+                        "primary-fixed-dim": "#c0c1ff",
+                        "surface-bright": "#fcf8ff",
+                        "on-primary-container": "#fffbff",
+                        "primary-fixed": "#e1e0ff",
+                        "on-secondary-fixed": "#3d0700",
+                        "inverse-on-surface": "#f2effb",
+                        "error-container": "#ffdad6",
+                        "on-surface": "#1b1b23",
+                        "surface": "#FAFAF8", /* Adjusted per user request for warm off-white */
+                        "on-background": "#1b1b23",
+                        "secondary-fixed": "#ffdad2",
+                        "surface-container-lowest": "#ffffff",
+                        "primary-container": "#6063ee",
+                        "on-error-container": "#93000a",
+                        "outline-variant": "#c7c4d7",
+                        "on-primary-fixed": "#07006c",
+                        "surface-container-highest": "#e4e1ed",
+                        "background": "#FAFAF8", /* Adjusted per user request for warm off-white */
+                        "secondary-fixed-dim": "#ffb4a3",
+                        "tertiary-fixed": "#ffdcc5",
+                        "on-error": "#ffffff",
+                        "on-secondary": "#ffffff",
+                        "surface-container": "#efecf8",
+                        "tertiary-fixed-dim": "#ffb783",
+                        "surface-variant": "#e4e1ed",
+                        "inverse-primary": "#c0c1ff",
+                        "on-primary-fixed-variant": "#2f2ebe",
+                        "surface-tint": "#494bd6",
+                        "on-primary": "#ffffff",
+                        "surface-dim": "#dbd8e4"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px",
+                        "card": "16px",
+                        "input": "12px"
+                    },
+                    "spacing": {
+                        "container_max": "1200px",
+                        "gutter": "20px",
+                        "xl": "32px",
+                        "lg": "24px",
+                        "md": "16px",
+                        "xs": "4px",
+                        "sm": "8px"
+                    },
+                    "fontFamily": {
+                        "h3": ["Plus Jakarta Sans"],
+                        "body-md": ["Be Vietnam Pro"],
+                        "h1": ["Plus Jakarta Sans"],
+                        "body-lg": ["Be Vietnam Pro"],
+                        "label-mono": ["Space Grotesk"],
+                        "h2": ["Plus Jakarta Sans"]
+                    },
+                    "fontSize": {
+                        "h3": ["24px", { "lineHeight": "1.4", "fontWeight": "700" }],
+                        "body-md": ["16px", { "lineHeight": "1.6", "fontWeight": "400" }],
+                        "h1": ["40px", { "lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "800" }],
+                        "body-lg": ["18px", { "lineHeight": "1.6", "fontWeight": "400" }],
+                        "label-mono": ["14px", { "lineHeight": "1.2", "letterSpacing": "0.05em", "fontWeight": "500" }],
+                        "h2": ["32px", { "lineHeight": "1.3", "letterSpacing": "-0.01em", "fontWeight": "700" }]
+                    },
+                    boxShadow: {
+                        'level-1': '0 4px 12px rgba(26,26,46,0.08)',
+                        'level-2': '0 8px 24px rgba(70,72,212,0.15)',
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body { background-color: theme('colors.background'); }
+    </style>
+</head>
+<body class="text-on-background min-h-screen flex flex-col font-body-md text-body-md">
+<!-- TopNavBar -->
+<nav class="bg-white/90 dark:bg-slate-900/90 backdrop-blur-md docked full-width top-0 z-50 border-b border-slate-100 dark:border-slate-800 shadow-[0_4px_12px_rgba(26,26,46,0.08)]">
+<div class="flex justify-between items-center px-6 h-20 w-full max-w-screen-2xl mx-auto">
+<div class="flex items-center gap-8">
+<a class="text-2xl font-black tracking-tight text-indigo-600 dark:text-indigo-400 font-['Plus_Jakarta_Sans'] font-medium" href="#">Trip Builder</a>
+<div class="hidden md:flex gap-6">
+<a class="text-slate-500 dark:text-slate-400 hover:text-indigo-500 transition-colors" href="#">My Trips</a>
+<a class="text-indigo-600 dark:text-indigo-400 font-bold border-b-2 border-indigo-600 dark:border-indigo-400 pb-1" href="#">Explore</a>
+<a class="text-slate-500 dark:text-slate-400 hover:text-indigo-500 transition-colors" href="#">Guides</a>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<button class="hidden md:flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-full transition-all duration-200 p-2 text-indigo-600 dark:text-indigo-400">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="hidden md:flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-full transition-all duration-200 p-2 text-indigo-600 dark:text-indigo-400">
+<span class="material-symbols-outlined">settings</span>
+</button>
+<button class="bg-gradient-to-r from-primary to-primary-container text-white px-6 py-2 rounded-full font-bold shadow-level-2 hover:scale-95 transition-transform">
+                    New Trip
+                </button>
+</div>
+</div>
+</nav>
+<main class="flex-grow w-full max-w-container_max mx-auto px-lg py-xl space-y-xl">
+<header class="mb-xl">
+<h1 class="font-h1 text-h1 text-primary mb-sm">UI Library</h1>
+<p class="font-body-lg text-body-lg text-on-surface-variant">Design system specifications and components for Trip Builder.</p>
+</header>
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-lg">
+<!-- Left Column -->
+<div class="lg:col-span-8 space-y-xl">
+<!-- Buttons Section -->
+<section class="bg-surface-container-lowest p-lg rounded-card shadow-level-1">
+<h2 class="font-h2 text-h2 mb-lg text-on-background">Buttons</h2>
+<div class="flex flex-wrap gap-md items-center">
+<button class="bg-gradient-to-r from-primary to-primary-container text-on-primary px-lg py-md rounded-full shadow-level-2 font-bold hover:scale-95 transition-transform">Primary Gradient</button>
+<button class="border border-outline text-primary px-lg py-md rounded-full hover:bg-surface-container-low transition-colors">Outline Button</button>
+<button class="text-on-surface-variant hover:text-primary px-lg py-md rounded-full hover:bg-surface-container-lowest transition-colors">Ghost Button</button>
+<button class="bg-error text-on-error px-lg py-md rounded-full shadow-level-1 hover:bg-error-container hover:text-on-error-container transition-colors">Destructive</button>
+<button class="bg-primary text-on-primary px-lg py-md rounded-full shadow-level-1 flex items-center gap-sm opacity-75 cursor-not-allowed">
+<span class="material-symbols-outlined animate-spin" style="font-variation-settings: 'FILL' 0;">progress_activity</span>
+                            Loading
+                        </button>
+<button class="bg-secondary-container text-on-secondary-container px-md py-sm rounded-full text-sm font-bold shadow-level-1">Small Variant</button>
+<button class="bg-surface-container-high text-primary p-md rounded-full shadow-level-1 hover:bg-primary hover:text-on-primary transition-colors flex items-center justify-center">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">favorite</span>
+</button>
+</div>
+</section>
+<!-- Form Elements Section -->
+<section class="bg-surface-container-lowest p-lg rounded-card shadow-level-1">
+<h2 class="font-h2 text-h2 mb-lg text-on-background">Form Elements</h2>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-lg">
+<!-- Text Input -->
+<div class="flex flex-col gap-xs">
+<label class="font-label-mono text-label-mono text-on-surface-variant">Destination</label>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-md top-1/2 -translate-y-1/2 text-outline">location_on</span>
+<input class="w-full pl-xl pr-md py-md rounded-input border border-outline bg-background focus:border-primary focus:ring-2 focus:ring-primary-fixed focus:outline-none transition-all" placeholder="Where to?" type="text"/>
+</div>
+</div>
+<!-- Date Picker (Simulated) -->
+<div class="flex flex-col gap-xs">
+<label class="font-label-mono text-label-mono text-on-surface-variant">Dates</label>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-md top-1/2 -translate-y-1/2 text-outline">calendar_month</span>
+<input class="w-full pl-xl pr-md py-md rounded-input border border-outline bg-background focus:border-primary focus:ring-2 focus:ring-primary-fixed focus:outline-none transition-all cursor-pointer" placeholder="Select dates" type="text" value="Oct 12 - Oct 18"/>
+</div>
+</div>
+<!-- Select Dropdown -->
+<div class="flex flex-col gap-xs">
+<label class="font-label-mono text-label-mono text-on-surface-variant">Travel Style</label>
+<div class="relative">
+<select class="w-full pl-md pr-xl py-md rounded-input border border-outline bg-background focus:border-primary focus:ring-2 focus:ring-primary-fixed focus:outline-none transition-all appearance-none cursor-pointer">
+<option>Relaxed &amp; Slow</option>
+<option>Action Packed</option>
+<option>Cultural Immersion</option>
+</select>
+<span class="material-symbols-outlined absolute right-md top-1/2 -translate-y-1/2 text-outline pointer-events-none">expand_more</span>
+</div>
+</div>
+<!-- Number Input -->
+<div class="flex flex-col gap-xs">
+<label class="font-label-mono text-label-mono text-on-surface-variant">Travelers</label>
+<div class="flex items-center border border-outline rounded-input bg-background overflow-hidden w-max">
+<button class="px-md py-md text-on-surface-variant hover:bg-surface-variant transition-colors flex items-center"><span class="material-symbols-outlined">remove</span></button>
+<input class="w-16 text-center border-none focus:ring-0 bg-transparent py-md font-bold" type="number" value="2"/>
+<button class="px-md py-md text-on-surface-variant hover:bg-surface-variant transition-colors flex items-center"><span class="material-symbols-outlined">add</span></button>
+</div>
+</div>
+<!-- Range Slider (Simulated) -->
+<div class="flex flex-col gap-xs md:col-span-2">
+<div class="flex justify-between items-center">
+<label class="font-label-mono text-label-mono text-on-surface-variant">Budget per Day</label>
+<span class="font-bold text-primary">$150 - $300</span>
+</div>
+<div class="h-2 bg-surface-variant rounded-full mt-sm relative">
+<div class="absolute left-[20%] right-[40%] bg-primary h-full rounded-full"></div>
+<div class="absolute left-[20%] top-1/2 -translate-y-1/2 w-4 h-4 bg-white border-2 border-primary rounded-full shadow-sm cursor-pointer -ml-2"></div>
+<div class="absolute right-[40%] top-1/2 -translate-y-1/2 w-4 h-4 bg-white border-2 border-primary rounded-full shadow-sm cursor-pointer -mr-2"></div>
+</div>
+</div>
+<!-- Textarea -->
+<div class="flex flex-col gap-xs md:col-span-2">
+<label class="font-label-mono text-label-mono text-on-surface-variant">Trip Notes</label>
+<textarea class="w-full px-md py-md rounded-input border border-outline bg-background focus:border-primary focus:ring-2 focus:ring-primary-fixed focus:outline-none transition-all resize-none" placeholder="Any special requests or must-see places?" rows="3"></textarea>
+</div>
+</div>
+</section>
+<!-- Trip Type Selector -->
+<section class="bg-surface-container-lowest p-lg rounded-card shadow-level-1">
+<h2 class="font-h2 text-h2 mb-lg text-on-background">Trip Type</h2>
+<div class="grid grid-cols-2 md:grid-cols-4 gap-md">
+<div class="border-2 border-primary bg-primary-fixed-dim/20 rounded-card p-md flex flex-col items-center justify-center text-center gap-sm cursor-pointer shadow-sm">
+<span class="material-symbols-outlined text-primary text-3xl" style="font-variation-settings: 'FILL' 1;">location_city</span>
+<span class="font-bold text-primary">Single City</span>
+</div>
+<div class="border border-outline-variant bg-surface rounded-card p-md flex flex-col items-center justify-center text-center gap-sm cursor-pointer hover:border-primary hover:bg-surface-container-low transition-all">
+<span class="material-symbols-outlined text-on-surface-variant text-3xl">map</span>
+<span class="font-medium text-on-surface">Area</span>
+</div>
+<div class="border border-outline-variant bg-surface rounded-card p-md flex flex-col items-center justify-center text-center gap-sm cursor-pointer hover:border-primary hover:bg-surface-container-low transition-all">
+<span class="material-symbols-outlined text-on-surface-variant text-3xl">directions_car</span>
+<span class="font-medium text-on-surface">Road Trip</span>
+</div>
+<div class="border border-outline-variant bg-surface rounded-card p-md flex flex-col items-center justify-center text-center gap-sm cursor-pointer hover:border-primary hover:bg-surface-container-low transition-all">
+<span class="material-symbols-outlined text-on-surface-variant text-3xl">flight_takeoff</span>
+<span class="font-medium text-on-surface">Multi-segment</span>
+</div>
+</div>
+</section>
+</div>
+<!-- Right Column -->
+<div class="lg:col-span-4 space-y-xl">
+<!-- Chip Selector -->
+<section class="bg-surface-container-lowest p-lg rounded-card shadow-level-1">
+<h2 class="font-h3 text-h3 mb-md text-on-background">Interests</h2>
+<div class="flex flex-wrap gap-sm">
+<button class="px-md py-sm rounded-full border border-primary bg-primary-fixed-dim text-primary font-medium flex items-center gap-xs">🏛️ History</button>
+<button class="px-md py-sm rounded-full border border-outline-variant bg-surface text-on-surface hover:bg-surface-container-low transition-colors font-medium flex items-center gap-xs">🍕 Food</button>
+<button class="px-md py-sm rounded-full border border-outline-variant bg-surface text-on-surface hover:bg-surface-container-low transition-colors font-medium flex items-center gap-xs">🎨 Art</button>
+<button class="px-md py-sm rounded-full border border-primary bg-primary-fixed-dim text-primary font-medium flex items-center gap-xs">🌲 Nature</button>
+<button class="px-md py-sm rounded-full border border-outline-variant bg-surface text-on-surface hover:bg-surface-container-low transition-colors font-medium flex items-center gap-xs">🛍️ Shopping</button>
+<button class="px-md py-sm rounded-full border border-outline-variant bg-surface text-on-surface hover:bg-surface-container-low transition-colors font-medium flex items-center gap-xs">🍷 Nightlife</button>
+</div>
+</section>
+<!-- Badges -->
+<section class="bg-surface-container-lowest p-lg rounded-card shadow-level-1">
+<h2 class="font-h3 text-h3 mb-md text-on-background">Badges &amp; Indicators</h2>
+<div class="space-y-md">
+<div>
+<p class="font-label-mono text-label-mono text-on-surface-variant mb-sm">Reservation Status</p>
+<div class="flex flex-wrap gap-sm">
+<span class="px-sm py-xs rounded-full bg-error-container text-on-error-container font-bold text-xs uppercase tracking-wide">Must Book</span>
+<span class="px-sm py-xs rounded-full bg-[#fef08a] text-[#854d0e] font-bold text-xs uppercase tracking-wide">Book Ahead</span>
+<span class="px-sm py-xs rounded-full bg-[#bbf7d0] text-[#166534] font-bold text-xs uppercase tracking-wide">Walk-in OK</span>
+</div>
+</div>
+<div>
+<p class="font-label-mono text-label-mono text-on-surface-variant mb-sm">Metrics</p>
+<div class="flex flex-wrap gap-sm">
+<span class="flex items-center gap-xs px-sm py-xs bg-surface-variant rounded-md text-sm font-medium"><span class="material-symbols-outlined text-[16px]">schedule</span> 2h 30m</span>
+<span class="flex items-center gap-xs px-sm py-xs bg-surface-variant rounded-md text-sm font-medium"><span class="material-symbols-outlined text-[16px]">payments</span> $$</span>
+<span class="flex items-center gap-xs px-sm py-xs bg-secondary-fixed rounded-md text-secondary font-bold text-sm"><span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">star</span> 4.8</span>
+</div>
+</div>
+<div>
+<p class="font-label-mono text-label-mono text-on-surface-variant mb-sm">Day Tags</p>
+<div class="flex flex-wrap gap-sm">
+<span class="px-md py-sm rounded-full bg-primary text-on-primary font-bold text-sm">Day 1</span>
+<span class="px-md py-sm rounded-full bg-tertiary text-on-tertiary font-bold text-sm">Day 2</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Progress -->
+<section class="bg-surface-container-lowest p-lg rounded-card shadow-level-1">
+<h2 class="font-h3 text-h3 mb-md text-on-background">Progress Steps</h2>
+<div class="flex justify-between items-center relative">
+<div class="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-1 bg-surface-variant -z-10"></div>
+<div class="absolute left-0 w-1/2 top-1/2 -translate-y-1/2 h-1 bg-primary -z-10"></div>
+<div class="flex flex-col items-center gap-xs">
+<div class="w-6 h-6 rounded-full bg-primary text-on-primary flex items-center justify-center text-xs font-bold"><span class="material-symbols-outlined text-[14px]">check</span></div>
+</div>
+<div class="flex flex-col items-center gap-xs">
+<div class="w-6 h-6 rounded-full bg-primary text-on-primary flex items-center justify-center text-xs font-bold"><span class="material-symbols-outlined text-[14px]">check</span></div>
+</div>
+<div class="flex flex-col items-center gap-xs">
+<div class="w-6 h-6 rounded-full bg-primary text-on-primary flex items-center justify-center text-xs font-bold">3</div>
+</div>
+<div class="flex flex-col items-center gap-xs">
+<div class="w-6 h-6 rounded-full bg-surface-variant text-on-surface-variant border-2 border-surface-variant flex items-center justify-center text-xs font-bold bg-white">4</div>
+</div>
+<div class="flex flex-col items-center gap-xs">
+<div class="w-6 h-6 rounded-full bg-surface-variant text-on-surface-variant border-2 border-surface-variant flex items-center justify-center text-xs font-bold bg-white">5</div>
+</div>
+</div>
+<div class="flex justify-between mt-sm">
+<span class="text-xs font-medium text-primary">Destination</span>
+<span class="text-xs font-medium text-on-surface-variant">Review</span>
+</div>
+</section>
+<!-- Empty & Error States -->
+<section class="bg-surface-container-lowest p-lg rounded-card shadow-level-1 flex flex-col gap-lg">
+<h2 class="font-h3 text-h3 text-on-background">States</h2>
+<!-- Empty State -->
+<div class="border-2 border-dashed border-outline-variant rounded-card p-lg flex flex-col items-center justify-center text-center">
+<div class="w-12 h-12 rounded-full bg-surface-container-high flex items-center justify-center mb-sm">
+<span class="material-symbols-outlined text-primary text-2xl">luggage</span>
+</div>
+<h4 class="font-bold text-on-background mb-xs">No trips planned yet</h4>
+<p class="text-sm text-on-surface-variant mb-md">Start building your next adventure.</p>
+<button class="text-primary font-bold hover:underline">Create a Trip</button>
+</div>
+<!-- Error State -->
+<div class="bg-error-container rounded-card p-md flex items-start gap-md">
+<span class="material-symbols-outlined text-error mt-xs" style="font-variation-settings: 'FILL' 1;">error</span>
+<div>
+<h4 class="font-bold text-on-error-container mb-xs">Couldn't load itinerary</h4>
+<p class="text-sm text-on-error-container/80">Please check your connection and try again.</p>
+<button class="mt-sm text-error font-bold text-sm hover:underline">Retry</button>
+</div>
+</div>
+</section>
+</div>
+</div>
+</main>
+<!-- Footer -->
+<footer class="bg-slate-50 dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 w-full py-12 mt-auto">
+<div class="flex flex-col md:flex-row justify-between items-center px-8 max-w-screen-2xl mx-auto gap-4">
+<span class="font-bold text-slate-900 dark:text-white font-['Plus_Jakarta_Sans'] text-sm">© 2024 Trip Builder. Your vibrant travel companion.</span>
+<div class="flex gap-6 font-['Plus_Jakarta_Sans'] text-sm">
+<a class="text-slate-500 dark:text-slate-400 hover:text-indigo-500 dark:hover:text-indigo-300 transition-colors opacity-80 hover:opacity-100" href="#">Privacy Policy</a>
+<a class="text-slate-500 dark:text-slate-400 hover:text-indigo-500 dark:hover:text-indigo-300 transition-colors opacity-80 hover:opacity-100" href="#">Terms of Service</a>
+<a class="text-slate-500 dark:text-slate-400 hover:text-indigo-500 dark:hover:text-indigo-300 transition-colors opacity-80 hover:opacity-100" href="#">Help Center</a>
+<a class="text-slate-500 dark:text-slate-400 hover:text-indigo-500 dark:hover:text-indigo-300 transition-colors opacity-80 hover:opacity-100" href="#">Contact Us</a>
+</div>
+</div>
+</footer>
+</body></html>

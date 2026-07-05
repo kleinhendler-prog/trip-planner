@@ -1,4 +1,5 @@
-import { supabase } from './supabase';
+import { db, places_cache } from './db';
+import { and, eq, gt } from 'drizzle-orm';
 import type { PlaceSearchResult } from '@/types/index';
 
 const GOOGLE_PLACES_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_PLACES_API_KEY;
@@ -231,18 +232,14 @@ async function getCachedPlace(
   key: string
 ): Promise<PlaceSearchResult | null> {
   try {
-    const { data, error } = await (supabase as any)
-      .from('places_cache')
-      .select('*')
-      .eq('googlePlacesId', key)
-      .gt('cached_at', new Date(Date.now() - CACHE_TTL_DAYS * 24 * 60 * 60 * 1000).toISOString())
-      .maybeSingle();
+    const cutoff = new Date(Date.now() - CACHE_TTL_DAYS * 24 * 60 * 60 * 1000);
+    const rows = await db
+      .select()
+      .from(places_cache)
+      .where(and(eq(places_cache.google_places_id, key), gt(places_cache.cached_at, cutoff)))
+      .limit(1);
 
-    if (error) {
-      console.warn('Cache read error:', error);
-      return null;
-    }
-
+    const data: any = rows[0];
     if (data) {
       return {
         name: data.name,
@@ -250,9 +247,9 @@ async function getCachedPlace(
         lat: data.lat,
         lng: data.lng,
         rating: data.rating,
-        reviewCount: data.reviewCount,
-        priceLevel: data.priceLevel,
-        photoUrl: data.photos?.[0] || undefined,
+        reviewCount: data.review_count,
+        priceLevel: data.price_level,
+        photoUrl: (data.photos as string[] | null)?.[0] || undefined,
       };
     }
 
@@ -271,20 +268,23 @@ async function cachePlace(
   data: PlaceSearchResult
 ): Promise<void> {
   try {
-    await (supabase as any)
-      .from('places_cache')
-      .insert({
-        googlePlacesId,
-        name: data.name,
-        address: data.address,
-        lat: data.lat,
-        lng: data.lng,
-        placeType: 'attraction',
-        rating: data.rating,
-        reviewCount: data.reviewCount,
-        priceLevel: data.priceLevel,
-        photos: data.photoUrl ? [data.photoUrl] : undefined,
-      });
+    const row = {
+      google_places_id: googlePlacesId,
+      name: data.name,
+      address: data.address,
+      lat: data.lat,
+      lng: data.lng,
+      place_type: 'attraction',
+      rating: data.rating,
+      review_count: data.reviewCount,
+      price_level: data.priceLevel,
+      photos: data.photoUrl ? [data.photoUrl] : undefined,
+      cached_at: new Date(),
+    };
+    await db
+      .insert(places_cache)
+      .values(row)
+      .onConflictDoUpdate({ target: places_cache.google_places_id, set: row });
   } catch (error) {
     console.warn('Cache write failed:', error);
     // Don't fail the request if caching fails

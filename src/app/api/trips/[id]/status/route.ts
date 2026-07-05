@@ -4,8 +4,8 @@
  */
 
 import { auth } from '@/app/api/auth/config';
-import { supabaseServer as supabase } from '@/lib/supabase';
-
+import { db, trips, generation_jobs } from '@/lib/db';
+import { desc, eq } from 'drizzle-orm';
 
 /**
  * GET /api/trips/[id]/status
@@ -24,20 +24,20 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     const { id } = await params;
 
     // Verify trip belongs to user
-    const { data: trip, error: tripError } = await (supabase as any)
-      .from('trips')
-      .select('userId')
-      .eq('id', id)
-      .single();
+    const rows = await db
+      .select({ user_id: trips.user_id })
+      .from(trips)
+      .where(eq(trips.id, id));
+    const trip = rows[0];
 
-    if (tripError || !trip) {
+    if (!trip) {
       return Response.json(
         { error: 'Trip not found' },
         { status: 404 }
       );
     }
 
-    if (trip.userId !== session.user.id) {
+    if (trip.user_id !== session.user.id) {
       return Response.json(
         { error: 'unauthorized' },
         { status: 401 }
@@ -52,17 +52,17 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
         try {
           // Poll for generation jobs
           let isComplete = false;
-          let lastEventId = 0;
 
           while (!isComplete) {
-            const { data: jobs, error: jobsError } = await (supabase as any)
-              .from('generation_jobs')
-              .select('*')
-              .eq('trip_id', id)
-              .order('created_at', { ascending: false })
-              .limit(1);
-
-            if (jobsError) {
+            let jobs;
+            try {
+              jobs = await db
+                .select()
+                .from(generation_jobs)
+                .where(eq(generation_jobs.trip_id, id))
+                .orderBy(desc(generation_jobs.created_at))
+                .limit(1);
+            } catch {
               controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: 'Failed to fetch job status' })}\n\n`));
               break;
             }
@@ -73,7 +73,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
               // Send job status update
               controller.enqueue(encoder.encode(
                 `data: ${JSON.stringify({
-                  step: job.currentStep,
+                  step: job.step,
                   status: job.status,
                   progress: job.progress || 0,
                   error: job.error,

@@ -52,7 +52,7 @@ export default function ProfilePage() {
     try {
       setIsLoading(true);
       setError('');
-      const response = await apiClient.get<UserPreference[]>('/profile/preferences');
+      const response = await apiClient.get<UserPreference[]>('/preferences');
       if (response.success && response.data) {
         setPreferences(response.data);
       } else {
@@ -68,7 +68,7 @@ export default function ProfilePage() {
   const handleDelete = async (preferenceId: string) => {
     try {
       setIsDeleting(true);
-      const response = await apiClient.delete(`/profile/preferences/${preferenceId}`);
+      const response = await apiClient.delete(`/preferences/${preferenceId}`);
       if (response.success) {
         setPreferences(preferences.filter((p) => p.id !== preferenceId));
         setDeleteConfirmId(null);

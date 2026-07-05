@@ -4,7 +4,8 @@
  */
 
 import { auth } from '@/app/api/auth/config';
-import { supabaseServer as supabase } from '@/lib/supabase';
+import { db, trips, trip_reflections, user_preferences } from '@/lib/db';
+import { and, eq } from 'drizzle-orm';
 import { callClaudeJSON } from '@/lib/claude';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -40,14 +41,12 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     }
 
     // Verify trip belongs to user
-    const { data: trip, error: tripError } = await supabase
-      .from('trips')
-      .select('*')
-      .eq('id', id)
-      .eq('user_id', session.user.id)
-      .single();
+    const tripRows = await db
+      .select({ id: trips.id })
+      .from(trips)
+      .where(and(eq(trips.id, id), eq(trips.user_id, session.user.id)));
 
-    if (tripError || !trip) {
+    if (!tripRows[0]) {
       return Response.json(
         { error: 'Trip not found' },
         { status: 404 }
@@ -62,51 +61,36 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     );
 
     // Check if reflection already exists
-    const { data: existingReflection, error: fetchError } = await (supabase as any)
-      .from('trip_reflections')
-      .select('id')
-      .eq('trip_id', id)
-      .single();
+    const existingRows = await db
+      .select({ id: trip_reflections.id })
+      .from(trip_reflections)
+      .where(eq(trip_reflections.trip_id, id));
+    const existingReflection = existingRows[0];
 
     let reflectionId = uuidv4();
     const reflectionData = {
-      tripId: id,
-      userId: session.user.id,
+      trip_id: id,
+      user_id: session.user.id,
       loved,
       disappointed,
       notes: notes || null,
-      extractedPreferences: extractedPreferences || {},
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      extracted_preferences: extractedPreferences || {},
+      updated_at: new Date(),
     };
 
     if (existingReflection) {
       // Update existing reflection
-      const { error: updateError } = await (supabase as any)
-        .from('trip_reflections')
-        .update({
-          ...reflectionData,
-          id: existingReflection.id,
-          updatedAt: new Date(),
-        })
-        .eq('id', existingReflection.id);
-
-      if (updateError) {
-        throw updateError;
-      }
+      await db
+        .update(trip_reflections)
+        .set(reflectionData)
+        .where(eq(trip_reflections.id, existingReflection.id));
       reflectionId = existingReflection.id;
     } else {
       // Insert new reflection
-      const { error: insertError } = await (supabase as any)
-        .from('trip_reflections')
-        .insert([{
-          ...reflectionData,
-          id: reflectionId,
-        } as any]);
-
-      if (insertError) {
-        throw insertError;
-      }
+      await db.insert(trip_reflections).values({
+        ...reflectionData,
+        id: reflectionId,
+      });
     }
 
     // Update user preferences if extracted
@@ -177,37 +161,35 @@ async function updateUserPreferences(
 ): Promise<void> {
   try {
     // Get or create user preferences
-    const { data: existingPrefs, error: fetchError } = await (supabase as any)
-      .from('user_preferences')
-      .select('*')
-      .eq('user_id', userId)
-      .single();
+    const existingRows = await db
+      .select()
+      .from(user_preferences)
+      .where(eq(user_preferences.user_id, userId));
+    const existingPrefs: any = existingRows[0];
 
     const mergedPrefs = {
-      userId,
+      user_id: userId,
       interests: Array.from(new Set([
-        ...(existingPrefs?.interests || []),
+        ...((existingPrefs?.interests as string[]) || []),
         ...(extractedPreferences.newInterests || []),
       ])),
       dislikes: Array.from(new Set([
-        ...(existingPrefs?.dislikes || []),
+        ...((existingPrefs?.dislikes as string[]) || []),
         ...(extractedPreferences.newDislikes || []),
       ])),
       pace: extractedPreferences.pace || existingPrefs?.pace,
-      budgetLevel: extractedPreferences.budgetLevel || existingPrefs?.budgetLevel,
-      hotelPreference: extractedPreferences.hotelPreference || existingPrefs?.hotelPreference,
-      updatedAt: new Date(),
+      budget_level: extractedPreferences.budgetLevel || existingPrefs?.budget_level,
+      hotel_preference: extractedPreferences.hotelPreference || existingPrefs?.hotel_preference,
+      updated_at: new Date(),
     };
 
     if (existingPrefs) {
-      await (supabase as any)
-        .from('user_preferences')
-        .update(mergedPrefs as any)
-        .eq('user_id', userId);
+      await db
+        .update(user_preferences)
+        .set(mergedPrefs)
+        .where(eq(user_preferences.user_id, userId));
     } else {
-      await (supabase as any)
-        .from('user_preferences')
-        .insert([mergedPrefs as any]);
+      await db.insert(user_preferences).values(mergedPrefs);
     }
   } catch (error) {
     console.error('Error updating user preferences:', error);

@@ -6,7 +6,8 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/app/api/auth/config';
-import { supabaseServer } from '@/lib/supabase';
+import { db, user_profiles } from '@/lib/db';
+import { eq } from 'drizzle-orm';
 import type { UserProfile } from '@/types/profile';
 
 interface ProfileResponse {
@@ -31,23 +32,13 @@ export async function GET(request: NextRequest) {
 
     const userId = session.user.id;
 
-    // Fetch profile from Supabase
-    const { data, error } = await (supabaseServer as any)
-      .from('user_profiles')
-      .select('profile')
-      .eq('user_id', userId)
-      .single();
+    // Fetch profile (no row = no profile yet, not an error)
+    const rows = await db
+      .select({ profile: user_profiles.profile })
+      .from(user_profiles)
+      .where(eq(user_profiles.user_id, userId));
 
-    if (error && error.code !== 'PGRST116') {
-      // PGRST116 = no rows returned (not an error)
-      console.error('Supabase error:', error);
-      return NextResponse.json(
-        { error: 'Failed to fetch profile' },
-        { status: 500 }
-      );
-    }
-
-    const profile = data?.profile as UserProfile | null;
+    const profile = (rows[0]?.profile as UserProfile | undefined) ?? null;
 
     // Check if profile is completed (has >= 5 non-empty keys)
     const completed = profile ? countNonEmptyKeys(profile) >= 5 : false;
@@ -84,27 +75,15 @@ export async function POST(request: NextRequest) {
     const profile = (await request.json()) as UserProfile;
 
     // Upsert the profile
-    const { data, error } = await (supabaseServer as any)
-      .from('user_profiles')
-      .upsert(
-        {
-          user_id: userId,
-          profile,
-          updated_at: new Date().toISOString(),
-        },
-        {
-          onConflict: 'user_id',
-        }
-      )
-      .select();
-
-    if (error) {
-      console.error('Supabase upsert error:', error);
-      return NextResponse.json(
-        { error: 'Failed to save profile' },
-        { status: 500 }
-      );
-    }
+    const row = {
+      user_id: userId,
+      profile,
+      updated_at: new Date(),
+    };
+    await db
+      .insert(user_profiles)
+      .values(row)
+      .onConflictDoUpdate({ target: user_profiles.user_id, set: row });
 
     const completed = countNonEmptyKeys(profile) >= 5;
 

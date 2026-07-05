@@ -4,7 +4,8 @@
  */
 
 import { auth } from '@/app/api/auth/config';
-import { supabaseServer as supabase } from '@/lib/supabase';
+import { db, trips, user_profiles } from '@/lib/db';
+import { and, eq } from 'drizzle-orm';
 import { callClaudeJSON } from '@/lib/claude';
 import type { SimpleItinerary } from '@/lib/generation/simple-pipeline';
 
@@ -34,14 +35,13 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     const { day_index, activity_index } = (await request.json()) as NearbyRequest;
 
     // Fetch trip
-    const { data: trip, error: tripError } = await (supabase as any)
-      .from('trips')
-      .select('*')
-      .eq('id', id)
-      .eq('user_id', session.user.id)
-      .single();
+    const tripRows = await db
+      .select()
+      .from(trips)
+      .where(and(eq(trips.id, id), eq(trips.user_id, session.user.id)));
+    const trip: any = tripRows[0];
 
-    if (tripError || !trip) {
+    if (!trip) {
       return Response.json({ error: 'Trip not found' }, { status: 404 });
     }
 
@@ -52,13 +52,12 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     }
 
     // Fetch user profile
-    const { data: profileRow } = await (supabase as any)
-      .from('user_profiles')
-      .select('profile')
-      .eq('user_id', trip.user_id)
-      .single();
+    const profileRows = await db
+      .select({ profile: user_profiles.profile })
+      .from(user_profiles)
+      .where(eq(user_profiles.user_id, trip.user_id));
 
-    const userProfile = profileRow?.profile || {};
+    const userProfile = (profileRows[0]?.profile as any) || {};
     const profileHints = Object.entries(userProfile)
       .filter(([_, v]) => v && (typeof v === 'string' || (Array.isArray(v) && v.length > 0)))
       .slice(0, 8)

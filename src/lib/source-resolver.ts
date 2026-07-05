@@ -1,4 +1,5 @@
-import { supabase } from './supabase';
+import { db, destination_sources } from './db';
+import { and, eq, desc, sql } from 'drizzle-orm';
 import type { DestinationSourceInfo } from '@/types/index';
 
 /**
@@ -9,21 +10,17 @@ export async function getDestinationSources(
   audienceType: string = 'general'
 ): Promise<DestinationSourceInfo[]> {
   try {
-    const { data, error } = await (supabase as any)
-      .from('destination_sources')
-      .select(
-        'id,destination_key,audience_type,domain,source_name,focus,trust_rating,active'
+    const data = await db
+      .select()
+      .from(destination_sources)
+      .where(
+        and(
+          eq(destination_sources.destination_key, destinationKey),
+          eq(destination_sources.audience_type, audienceType),
+          eq(destination_sources.active, true)
+        )
       )
-      .eq('destination_key', destinationKey)
-      .eq('audience_type', audienceType)
-      .eq('active', true)
-      .order('trust_rating', { ascending: false })
-      .order('upvotes', { ascending: false });
-
-    if (error) {
-      console.warn('Failed to fetch destination sources:', error);
-      return [];
-    }
+      .orderBy(desc(destination_sources.trust_rating), desc(destination_sources.upvotes));
 
     return (data || []).map((row: any) => ({
       id: row.id,
@@ -73,9 +70,15 @@ export async function voteOnSource(
 ): Promise<void> {
   try {
     if (vote === 'up') {
-      await (supabase as any).rpc('increment_source_upvotes', { source_id: sourceId });
+      await db
+        .update(destination_sources)
+        .set({ upvotes: sql`${destination_sources.upvotes} + 1` })
+        .where(eq(destination_sources.id, sourceId));
     } else {
-      await (supabase as any).rpc('increment_source_downvotes', { source_id: sourceId });
+      await db
+        .update(destination_sources)
+        .set({ downvotes: sql`${destination_sources.downvotes} + 1` })
+        .where(eq(destination_sources.id, sourceId));
     }
   } catch (error) {
     console.error('Failed to vote on source:', error);
@@ -89,9 +92,9 @@ export async function addDestinationSource(
   source: Omit<DestinationSourceInfo, 'id'>
 ): Promise<DestinationSourceInfo | null> {
   try {
-    const { data, error } = await (supabase as any)
-      .from('destination_sources')
-      .insert({
+    const inserted = await db
+      .insert(destination_sources)
+      .values({
         destination_key: source.destinationKey,
         audience_type: source.audienceType,
         domain: source.domain,
@@ -101,11 +104,11 @@ export async function addDestinationSource(
         active: source.active,
         added_by: 'user_approved',
       })
-      .select()
-      .single();
+      .returning();
 
-    if (error) {
-      console.warn('Failed to add destination source:', error);
+    const data: any = inserted[0];
+    if (!data) {
+      console.warn('Failed to add destination source: no row returned');
       return null;
     }
 

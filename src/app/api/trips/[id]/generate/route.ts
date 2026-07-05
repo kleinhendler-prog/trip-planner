@@ -1,5 +1,6 @@
 import { auth } from '@/app/api/auth/config';
-import { supabaseServer as supabase } from '@/lib/supabase';
+import { db, trips } from '@/lib/db';
+import { eq } from 'drizzle-orm';
 import { generateTripItinerary } from '@/lib/generation/simple-pipeline';
 
 export const maxDuration = 120;
@@ -14,11 +15,11 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
     const { id } = await params;
 
     // Verify ownership
-    const { data: trip } = await (supabase as any)
-      .from('trips')
-      .select('user_id, status')
-      .eq('id', id)
-      .single();
+    const rows = await db
+      .select({ user_id: trips.user_id, status: trips.status })
+      .from(trips)
+      .where(eq(trips.id, id));
+    const trip = rows[0];
 
     if (!trip) return Response.json({ error: 'not found' }, { status: 404 });
     if (trip.user_id !== session.user.id) {
@@ -29,10 +30,10 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
     }
 
     // Mark generation start time so we can detect stale/orphaned generations
-    await (supabase as any)
-      .from('trips')
-      .update({ generation_started_at: new Date().toISOString() })
-      .eq('id', id);
+    await db
+      .update(trips)
+      .set({ generation_started_at: new Date() })
+      .where(eq(trips.id, id));
 
     await generateTripItinerary(id);
     return Response.json({ ok: true });
@@ -42,10 +43,7 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
     // Best-effort: mark trip as failed even if the function is about to die
     const { id } = await params;
     try {
-      await (supabase as any)
-        .from('trips')
-        .update({ status: 'failed' })
-        .eq('id', id);
+      await db.update(trips).set({ status: 'failed' }).where(eq(trips.id, id));
     } catch (e) {
       console.error('Failed to mark trip as failed:', e);
     }

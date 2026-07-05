@@ -2,11 +2,32 @@
  * User Preferences API Routes
  * GET: List active user preferences
  * POST: Create new preference
+ *
+ * DB rows are snake_case; API responses are mapped to the camelCase shape
+ * the profile page renders (hotelPreference, budgetLevel, ...).
  */
 
 import { auth } from '@/app/api/auth/config';
-import { supabaseServer as supabase } from '@/lib/supabase';
+import { db, user_preferences } from '@/lib/db';
+import { and, eq } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
+
+function toApiShape(row: any) {
+  return {
+    id: row.id,
+    userId: row.user_id,
+    interests: row.interests || [],
+    dislikes: row.dislikes || [],
+    hotelPreference: row.hotel_preference,
+    pace: row.pace,
+    budgetLevel: row.budget_level,
+    mealDietaryRestrictions: row.meal_dietary_restrictions || [],
+    mobilityNeeds: row.mobility_needs,
+    active: row.active,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
 
 /**
  * GET /api/preferences
@@ -22,17 +43,17 @@ export async function GET() {
       );
     }
 
-    const { data: preferences, error } = await supabase
-      .from('user_preferences')
-      .select('*')
-      .eq('user_id', session.user.id)
-      .eq('active', true);
+    const rows = await db
+      .select()
+      .from(user_preferences)
+      .where(
+        and(
+          eq(user_preferences.user_id, session.user.id),
+          eq(user_preferences.active, true)
+        )
+      );
 
-    if (error) {
-      throw error;
-    }
-
-    return Response.json(preferences || []);
+    return Response.json(rows.map(toApiShape));
   } catch (error) {
     console.error('GET /api/preferences error:', error);
     return Response.json(
@@ -58,32 +79,23 @@ export async function POST(request: Request) {
 
     const body = await request.json() as any;
 
-    const preferenceData = {
-      id: uuidv4(),
-      userId: session.user.id,
-      interests: body.interests || [],
-      dislikes: body.dislikes || [],
-      hotelPreference: body.hotelPreference,
-      pace: body.pace,
-      budgetLevel: body.budgetLevel,
-      mealDietaryRestrictions: body.mealDietaryRestrictions || [],
-      mobilityNeeds: body.mobilityNeeds,
-      active: true,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
+    const inserted = await db
+      .insert(user_preferences)
+      .values({
+        id: uuidv4(),
+        user_id: session.user.id,
+        interests: body.interests || [],
+        dislikes: body.dislikes || [],
+        hotel_preference: body.hotelPreference,
+        pace: body.pace,
+        budget_level: body.budgetLevel,
+        meal_dietary_restrictions: body.mealDietaryRestrictions || [],
+        mobility_needs: body.mobilityNeeds,
+        active: true,
+      })
+      .returning();
 
-    const { data, error } = await (supabase as any)
-      .from('user_preferences')
-      .insert([preferenceData as any])
-      .select()
-      .single();
-
-    if (error) {
-      throw error;
-    }
-
-    return Response.json(data, { status: 201 });
+    return Response.json(toApiShape(inserted[0]), { status: 201 });
   } catch (error) {
     console.error('POST /api/preferences error:', error);
     return Response.json(

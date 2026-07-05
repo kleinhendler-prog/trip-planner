@@ -4,7 +4,8 @@
  */
 
 import { auth } from '@/app/api/auth/config';
-import { supabaseServer as supabase } from '@/lib/supabase';
+import { db, user_preferences } from '@/lib/db';
+import { eq } from 'drizzle-orm';
 
 /**
  * DELETE /api/preferences/[id]
@@ -22,20 +23,20 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
     }
 
     // Verify preference belongs to user
-    const { data: pref, error: fetchError } = await (supabase as any)
-      .from('user_preferences')
-      .select('userId')
-      .eq('id', id)
-      .single();
+    const rows = await db
+      .select({ user_id: user_preferences.user_id })
+      .from(user_preferences)
+      .where(eq(user_preferences.id, id));
+    const pref = rows[0];
 
-    if (fetchError || !pref) {
+    if (!pref) {
       return Response.json(
         { error: 'Preference not found' },
         { status: 404 }
       );
     }
 
-    if (pref.userId !== session.user.id) {
+    if (pref.user_id !== session.user.id) {
       return Response.json(
         { error: 'unauthorized' },
         { status: 401 }
@@ -43,17 +44,10 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
     }
 
     // Soft delete by setting active=false
-    const { error: updateError } = await (supabase as any)
-      .from('user_preferences')
-      .update({
-        active: false,
-        updatedAt: new Date(),
-      })
-      .eq('id', id);
-
-    if (updateError) {
-      throw updateError;
-    }
+    await db
+      .update(user_preferences)
+      .set({ active: false, updated_at: new Date() })
+      .where(eq(user_preferences.id, id));
 
     return Response.json({ success: true });
   } catch (error) {

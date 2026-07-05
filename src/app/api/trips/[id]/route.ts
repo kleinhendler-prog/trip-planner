@@ -5,7 +5,8 @@
  */
 
 import { auth } from '@/app/api/auth/config';
-import { supabaseServer as supabase, deleteTrip } from '@/lib/supabase';
+import { db, trips } from '@/lib/db';
+import { and, eq } from 'drizzle-orm';
 
 /**
  * GET /api/trips/[id]
@@ -23,21 +24,17 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
 
     const { id } = await params;
 
-    const { data: trip, error } = await (supabase as any)
-      .from('trips')
-      .select('*')
-      .eq('id', id)
-      .eq('user_id', session.user.id)
-      .single();
+    const rows = await db
+      .select()
+      .from(trips)
+      .where(and(eq(trips.id, id), eq(trips.user_id, session.user.id)));
+    const trip: any = rows[0];
 
-    if (error) {
-      if (error.code === 'PGRST116') {
-        return Response.json(
-          { error: 'Trip not found' },
-          { status: 404 }
-        );
-      }
-      throw error;
+    if (!trip) {
+      return Response.json(
+        { error: 'Trip not found' },
+        { status: 404 }
+      );
     }
 
     // Detect stale/orphaned generations: if generating for >2.5 minutes, auto-fail
@@ -48,10 +45,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
 
       if (elapsed > STALE_THRESHOLD_MS) {
         console.warn(`[Stale Generation] Trip ${id} has been generating for ${Math.round(elapsed / 1000)}s — marking as failed`);
-        await (supabase as any)
-          .from('trips')
-          .update({ status: 'failed' })
-          .eq('id', id);
+        await db.update(trips).set({ status: 'failed' }).where(eq(trips.id, id));
         trip.status = 'failed';
       }
     }
@@ -68,7 +62,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
 
 /**
  * DELETE /api/trips/[id]
- * Delete a trip and all related data
+ * Delete a trip and all related data (child tables cascade via FK)
  */
 export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -83,13 +77,13 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
     const { id } = await params;
 
     // Verify trip belongs to user
-    const { data: trip, error: fetchError } = await (supabase as any)
-      .from('trips')
-      .select('user_id')
-      .eq('id', id)
-      .single();
+    const rows = await db
+      .select({ user_id: trips.user_id })
+      .from(trips)
+      .where(eq(trips.id, id));
+    const trip = rows[0];
 
-    if (fetchError || !trip) {
+    if (!trip) {
       return Response.json(
         { error: 'Trip not found' },
         { status: 404 }
@@ -103,8 +97,8 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
       );
     }
 
-    // Delete trip and all related data
-    await deleteTrip(id);
+    // Delete trip; related rows cascade
+    await db.delete(trips).where(eq(trips.id, id));
 
     return Response.json({ success: true });
   } catch (error) {
