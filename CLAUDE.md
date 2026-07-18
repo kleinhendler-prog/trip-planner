@@ -57,21 +57,21 @@ All four targets below are in the **project root**. Never edit the global `~/.cl
   - `stitch-design/` + `stitch-prompt.md` — Google Stitch UI kit and the design-system prompt that produced it.
   - `API/` — plaintext API key files (Anthropic, Google). **Sensitive — gitignored, never commit.**
   - `trip-planner/` — stale duplicate of the project (Cowork leftover, gitignored). Candidate for deletion; ignore it when searching code.
-- **External services:** Neon Postgres (via Vercel Marketplace, DATABASE_URL; Drizzle ORM + neon serverless driver), NextAuth v5 beta single-user env login (**to be replaced by Neon Auth** in Phase 2), Anthropic API (itinerary generation), Google Places API, OpenWeatherMap. **Hosted on Vercel — pushing to `main` auto-deploys production.** GitHub: `kleinhendler-prog/trip-planner` (public repo). Email provider + Booking.com/GetYourGuide affiliate IDs are stubbed in `.env.example`.
+- **External services:** Neon Postgres (via Vercel Marketplace, DATABASE_URL; Drizzle ORM + neon serverless driver), NextAuth v5 beta single-user env login (**to be replaced by Cloudflare Access** when the app moves to the NAS), Anthropic API (itinerary generation), Google Places API, OpenWeatherMap. **Currently hosted on Vercel — pushing to `main` auto-deploys production** (moving to the NAS, see Planned). GitHub: `kleinhendler-prog/trip-planner` (public repo). Email provider + Booking.com/GetYourGuide affiliate IDs are stubbed in `.env.example`.
 
 ---
 
 ## Current status
 
-**The app runs on Neon.** Phase 1 of the migration landed 2026-07-04: the data layer is Drizzle + Neon serverless (schema in `src/lib/db/schema.ts`, applied via `npx drizzle-kit push`, seeded via `node scripts/db-seed.mjs` — 55 sources). Verified end-to-end locally against the live Neon DB: login → create trip → AI generation (2-day Rome test, QA passed) → itinerary render → delete with cascade. The port also fixed a pile of long-broken column/path mismatches (see the 978f124 commit message) and stubbed 5 routes built for the retired relational model as explicit 501s. Supabase is fully out of the code; the old Supabase project can be deleted. Next: Phase 2 (Neon Auth multi-user login).
+**The app runs on Neon.** Phase 1 of the migration landed 2026-07-04: the data layer is Drizzle + Neon serverless (schema in `src/lib/db/schema.ts`, applied via `npx drizzle-kit push`, seeded via `node scripts/db-seed.mjs` — 55 sources). Verified end-to-end locally against the live Neon DB: login → create trip → AI generation (2-day Rome test, QA passed) → itinerary render → delete with cascade. The port also fixed a pile of long-broken column/path mismatches (see the 978f124 commit message) and stubbed 5 routes built for the retired relational model as explicit 501s. Supabase is fully out of the code; the old Supabase project can be deleted. **Next milestone: move hosting off Vercel onto the Synology NAS** at `trip.klein-labs.com` — decided 2026-07-18, not yet built (see Planned).
 
 ---
 
 ## Where we left off
 
-- **Last worked on:** (2026-07-04, same session as the Neon decision) Completed Phase 1: user provisioned Neon via Vercel Marketplace ("Trip-Planner-DB", DATABASE_URL prefix, all environments); ported all data access to Drizzle; applied schema + seeds; verified the full flow locally against Neon; pushed (auto-deploys production).
-- **Next up:** Verify the production deploy generated a trip successfully (quick prod smoke test), then Phase 2: Neon Auth multi-user login. User cleanup: remove the 6 old Supabase env vars from Vercel and delete the old Supabase project.
-- **Open question:** Make the public GitHub repo private? Rebuild any of the 5 stubbed features (weather refresh, regenerate day, export-pdf route, cron) on the JSONB model, or drop them?
+- **Last worked on:** (2026-07-18) No code changes. Reviewed the MedPulse and MedStreak NAS setups to decide Trip Builder's hosting, and **decided to self-host it on the Synology NAS** the same way. Confirmed feasibility by measurement, not guesswork (numbers in DECISIONS.md), and found the `UntrustedHost` blocker in advance (see Gotchas). Earlier in the same session: completed the whole Neon migration (Phase 1) and deployed it.
+- **Next up:** Build the NAS migration — the checklist under Planned. Nothing is started yet; the app is happily on Vercel meanwhile. User cleanup still open: remove the 6 old Supabase env vars from Vercel and delete the old Supabase project.
+- **Open question:** Make the public GitHub repo private (more relevant once self-hosted)? Rebuild any of the 5 stubbed features (weather refresh, regenerate day, export-pdf route, cron) on the JSONB model, or drop them?
 
 ---
 
@@ -83,16 +83,23 @@ For the full list of completed features, see `FEATURES.md`.
 - *Nothing actively in progress.*
 
 ### Planned
-- **Phase 2 (code):** replace the env-var login with Neon Auth (real multi-user signup/login); tie trips to real user IDs. Verify, deploy.
+**Move hosting to the Synology NAS (decided 2026-07-18, ~half a day, nothing started).** Copy the MedPulse pattern — the reference files are `MEDPULSE/MedPulse/docker-compose.yml`, its `Dockerfile`, and `.github/workflows/docker-build.yml`. Neon stays as the database; no data migration.
+- Add `output: 'standalone'` to `next.config.ts` (also shrinks the image — `.next` is currently 266 MB).
+- Set `trustHost: true` in the NextAuth config, or remove NextAuth entirely if Cloudflare Access replaces it — without this login fails behind the tunnel (see Gotchas).
+- Dockerfile + `docker-compose.yml` (app + cloudflared + watchtower), secrets in the NAS compose only, never the repo.
+- GitHub Actions → GHCR; **the image must be built by Actions, never on the NAS (too weak) or the Mac (ARM vs the NAS's Intel)**.
+- **Scope this third Watchtower** (`--scope trip-builder` + matching label on both services) — an unscoped one kills the other two projects' auto-deploy.
+- Cloudflare Tunnel + DNS for `trip.klein-labs.com`; put Cloudflare Access in front (email code) as the login.
+- After the move: raise the generation model above claude-haiku-4-5 and the 120s budget — the Vercel timeout was the only reason for both.
 - **Cleanup (user):** remove the old Supabase env vars from Vercel project settings; delete the paused Supabase project (`flrksrouxghnninsywhx`) — nothing references it anymore.
-- Production smoke test after the Phase 1 deploy (login on the live site, generate a trip).
+- Production smoke test on the current Vercel deploy (login on the live site, generate a trip) — still never done.
 - Decide fate of the 5 stubbed dead-model routes (rebuild on JSONB or delete): trip weather-refresh, apply-weather-swaps, regenerate-day, export-pdf, cron/weather-refresh.
 - Pay down ESLint debt (~470 errors incl. pre-existing `no-explicit-any` style kept during the port).
 - Decide: make the public GitHub repo private?
 
 ### Parked / maybe later
 - Email/booking integrations (inbound email route and affiliate IDs exist as stubs).
-- Multi-user support — auth is deliberately single-user (env-var credentials) for now.
+- Public multi-user signup (Neon Auth) — parked while the app is for Eyal + family; Cloudflare Access covers that. Revisit only if strangers need accounts.
 
 ---
 
@@ -133,3 +140,5 @@ For the full list of completed features, see `FEATURES.md`.
 - **bcrypt hashes in `.env.local` must have `$` escaped as `\$`** — Next's env loader (dotenv-expand) treats `$2b$10$...` as variable references and silently mangles the hash into garbage → "Invalid credentials" with no other clue. (Vercel's env UI doesn't have this problem.)
 - Supabase free tier **auto-pauses projects after ~1 week of inactivity** and needs a manual restore — this silently killed production and prompted the move to Neon (2026-07-04). Neon also scales to zero when idle, but wakes automatically on the next connection (expect a couple of slow first requests, not an outage).
 - A NextAuth "Configuration" error on the login page usually just means the `authorize()` function threw (e.g., wrong password) — not necessarily a real config problem.
+- **NextAuth v5 refuses to run behind a proxy unless told to** — `next start` (or any non-Vercel host) returns `UntrustedHost` and every login fails. Vercel sets this trust automatically; a Cloudflare Tunnel does not. Fix: `trustHost: true` in the auth config. Found 2026-07-18 by running a production build locally, before it could break the NAS deploy.
+- **A third Docker project on the NAS must scope its Watchtower** — Watchtower stops any other unscoped Watchtower on the host. This silently killed MedPulse's auto-deploy for 9 days when MedStreak arrived. Both existing projects are now scoped; Trip Builder must be too (`--scope <project>` + the matching label on both the watchtower and app services).
