@@ -352,12 +352,25 @@ ${buildJsonStructure(segment.startDate, currency)}`;
 
 /* ── Generation Function ────────────────────────────────── */
 
+/**
+ * Itinerary quality is the whole product, so generation uses the strongest model
+ * rather than the fast one the small helper routes share.
+ */
+const GENERATION_MODEL = 'claude-opus-4-8';
+/** Leaves headroom under the generate route's 300s limit for QA and DB writes. */
+const GENERATION_BUDGET_MS = 260_000;
+/** Adaptive thinking shares this budget with the JSON, so it needs room above the old 16k. */
+const GENERATION_MAX_TOKENS = 32000;
+
 /** Generate a single-segment (standard) itinerary */
 async function generateSingleItinerary(trip: any, userProfile: any): Promise<SimpleItinerary> {
   const prompt = buildPrompt(trip, userProfile);
   return callClaudeJSON<SimpleItinerary>(prompt, {
-    maxTokens: 16000,
-    temperature: 0.5,
+    model: GENERATION_MODEL,
+    maxTokens: GENERATION_MAX_TOKENS,
+    effort: 'medium',
+    timeoutMs: GENERATION_BUDGET_MS,
+    maxRetries: 2,
   });
 }
 
@@ -367,6 +380,9 @@ async function generateMultiSegmentItinerary(
   trip: any,
   userProfile: any
 ): Promise<SimpleItinerary> {
+  // Segments are generated one after another, so they share a single budget
+  // rather than each getting the full one.
+  const deadline = Date.now() + GENERATION_BUDGET_MS;
   let dayOffset = 0;
   const allDays: ItineraryDay[] = [];
   const allHighlights: string[] = [];
@@ -385,8 +401,11 @@ async function generateMultiSegmentItinerary(
     console.log(`[Multi-Segment] Generating segment ${i + 1}/${segments.length}: ${seg.destination} (${seg.type})`);
 
     const segResult = await callClaudeJSON<SimpleItinerary>(prompt, {
-      maxTokens: 16000,
-      temperature: 0.5,
+      model: GENERATION_MODEL,
+      maxTokens: GENERATION_MAX_TOKENS,
+      effort: 'medium',
+      timeoutMs: deadline - Date.now(),
+      maxRetries: 1,
     });
 
     // Label each day with the segment name and renumber

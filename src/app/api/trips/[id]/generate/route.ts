@@ -3,7 +3,7 @@ import { db, trips } from '@/lib/db';
 import { eq } from 'drizzle-orm';
 import { generateTripItinerary } from '@/lib/generation/simple-pipeline';
 
-export const maxDuration = 120;
+export const maxDuration = 300; // Vercel's Hobby ceiling; the old 120 was a 60s-era holdover
 
 export async function POST(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {

@@ -8,7 +8,27 @@ export interface ClaudeMessageOptions {
   system?: string;
   maxTokens?: number;
   temperature?: number;
+  /** Override the model. Defaults to the fast model the small helper routes use. */
+  model?: string;
+  /** Total budget for this call *including* retries — not per attempt. */
+  timeoutMs?: number;
+  maxRetries?: number;
+  /** Reasoning depth. Only sent to models that support it (see ADAPTIVE_THINKING_MODELS). */
+  effort?: 'low' | 'medium' | 'high' | 'max';
 }
+
+/** Fast + cheap: used by nearby, swap-activity, reflect, inbound-email. */
+const DEFAULT_MODEL = 'claude-haiku-4-5';
+
+/**
+ * Models that use adaptive thinking. They reject `temperature` with a 400 and
+ * take an `effort` level instead, so those two options are mutually exclusive.
+ */
+const ADAPTIVE_THINKING_MODELS = new Set([
+  'claude-opus-4-8',
+  'claude-opus-4-7',
+  'claude-sonnet-5',
+]);
 
 const MAX_RETRIES = 3;
 const TIMEOUT_MS = 90000; // 90 seconds
@@ -24,25 +44,31 @@ export async function callClaude(
     system,
     maxTokens = 4096,
     temperature = 0.7,
+    model = DEFAULT_MODEL,
+    timeoutMs = TIMEOUT_MS,
+    maxRetries = MAX_RETRIES,
+    effort = 'medium',
   } = options;
 
+  const adaptive = ADAPTIVE_THINKING_MODELS.has(model);
+
+  // The whole call (all attempts) must finish inside the caller's budget, so the
+  // serverless function can't die mid-retry and leave the trip stuck.
+  const deadline = Date.now() + timeoutMs;
   let lastError: Error | null = null;
 
-  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-    try {
-      // Create timeout promise
-      const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(
-          () => reject(new Error(`Claude API call timed out after ${TIMEOUT_MS}ms`)),
-          TIMEOUT_MS
-        )
-      );
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    const remainingMs = deadline - Date.now();
+    if (remainingMs <= 0) break;
 
-      // Create API call promise
-      const apiPromise = client.messages.create({
-        model: 'claude-haiku-4-5',
+    let timedOut = false;
+
+    try {
+      // Streaming avoids the HTTP timeouts that non-streaming requests hit at
+      // high max_tokens; .finalMessage() still gives us the whole response.
+      const stream = client.messages.stream({
+        model,
         max_tokens: maxTokens,
-        temperature,
         system,
         messages: [
           {
@@ -50,14 +76,27 @@ export async function callClaude(
             content: prompt,
           },
         ],
+        // Adaptive-thinking models reject temperature; older ones reject effort.
+        ...(adaptive
+          ? { thinking: { type: 'adaptive' as const }, output_config: { effort } }
+          : { temperature }),
       });
 
-      // Race between timeout and API call
-      const response = await Promise.race([apiPromise, timeoutPromise]);
+      const timer = setTimeout(() => {
+        timedOut = true;
+        stream.abort();
+      }, remainingMs);
+
+      let response;
+      try {
+        response = await stream.finalMessage();
+      } finally {
+        clearTimeout(timer);
+      }
 
       // Check if response was truncated due to max_tokens
       if (response.stop_reason === 'max_tokens') {
-        console.warn(`[Claude] Response truncated at ${maxTokens} tokens (attempt ${attempt}/${MAX_RETRIES})`);
+        console.warn(`[Claude] Response truncated at ${maxTokens} tokens (attempt ${attempt}/${maxRetries})`);
       }
 
       // Extract text from response
@@ -68,21 +107,24 @@ export async function callClaude(
 
       return textContent.text;
     } catch (error) {
-      lastError = error as Error;
+      lastError = timedOut
+        ? new Error(`Claude API call ran out of time (${timeoutMs}ms budget)`)
+        : (error as Error);
 
-      // Don't retry on timeout for last attempt
-      if (attempt === MAX_RETRIES) {
+      // Out of budget, or out of attempts — either way, stop here.
+      if (timedOut || attempt === maxRetries) {
         break;
       }
 
-      // Exponential backoff: 1s, 2s, 4s
+      // Exponential backoff: 1s, 2s, 4s — but never past the deadline.
       const backoffMs = Math.pow(2, attempt - 1) * 1000;
+      if (Date.now() + backoffMs >= deadline) break;
       await new Promise((resolve) => setTimeout(resolve, backoffMs));
     }
   }
 
   throw new Error(
-    `Claude API call failed after ${MAX_RETRIES} attempts: ${lastError?.message || 'Unknown error'}`
+    `Claude API call failed (model ${model}): ${lastError?.message || 'Unknown error'}`
   );
 }
 
