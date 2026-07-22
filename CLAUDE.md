@@ -63,14 +63,14 @@ All four targets below are in the **project root**. Never edit the global `~/.cl
 
 ## Current status
 
-**The app runs on Neon.** Phase 1 of the migration landed 2026-07-04: the data layer is Drizzle + Neon serverless (schema in `src/lib/db/schema.ts`, applied via `npx drizzle-kit push`, seeded via `node scripts/db-seed.mjs` — 55 sources). Verified end-to-end locally against the live Neon DB: login → create trip → AI generation (2-day Rome test, QA passed) → itinerary render → delete with cascade. The port also fixed a pile of long-broken column/path mismatches (see the 978f124 commit message) and stubbed 5 routes built for the retired relational model as explicit 501s. Supabase is fully out of the code; the old Supabase project can be deleted. **Next milestone: move hosting off Vercel onto the Synology NAS** at `trip.klein-labs.com` — decided 2026-07-18, not yet built (see Planned).
+**The app runs on Neon.** Phase 1 of the migration landed 2026-07-04: the data layer is Drizzle + Neon serverless (schema in `src/lib/db/schema.ts`, applied via `npx drizzle-kit push`, seeded via `node scripts/db-seed.mjs` — 55 sources). Verified end-to-end locally against the live Neon DB: login → create trip → AI generation (2-day Rome test, QA passed) → itinerary render → delete with cascade. The port also fixed a pile of long-broken column/path mismatches (see the 978f124 commit message) and stubbed 5 routes built for the retired relational model as explicit 501s. Supabase is fully out of the code; the old Supabase project can be deleted. **Generation now runs on claude-opus-4-8** (2026-07-22) after the 120s route cap turned out to be a self-imposed holdover, not a Vercel limit — Hobby allows 300s. **Hosting stays on Vercel**; the NAS move is deferred, since escaping that timeout was its main driver (see DECISIONS.md).
 
 ---
 
 ## Where we left off
 
-- **Last worked on:** (2026-07-18) No code changes. Reviewed the MedPulse and MedStreak NAS setups to decide Trip Builder's hosting, and **decided to self-host it on the Synology NAS** the same way. Confirmed feasibility by measurement, not guesswork (numbers in DECISIONS.md), and found the `UntrustedHost` blocker in advance (see Gotchas). Earlier in the same session: completed the whole Neon migration (Phase 1) and deployed it.
-- **Next up:** Build the NAS migration — the checklist under Planned. Nothing is started yet; the app is happily on Vercel meanwhile. User cleanup still open: remove the 6 old Supabase env vars from Vercel and delete the old Supabase project.
+- **Last worked on:** (2026-07-22) Re-examined the NAS decision and found its main justification didn't hold: the 120s generate-route cap was self-imposed, not Vercel's limit. Raised it to 300s and moved generation to claude-opus-4-8 (commit 7104d9c) — which also required removing `temperature` (rejected by adaptive-thinking models), lifting a hidden 90s client-side timeout, switching to streaming, and making retries budget-aware. Verified against the live API, not just typecheck.
+- **Next up:** Generate a real trip in the app and judge whether itinerary quality actually improved — that's the point of the change and only Eyal can call it. User cleanup still open: remove the 6 old Supabase env vars from Vercel and delete the old Supabase project.
 - **Open question:** Make the public GitHub repo private (more relevant once self-hosted)? Rebuild any of the 5 stubbed features (weather refresh, regenerate day, export-pdf route, cron) on the JSONB model, or drop them?
 
 ---
@@ -83,14 +83,13 @@ For the full list of completed features, see `FEATURES.md`.
 - *Nothing actively in progress.*
 
 ### Planned
-**Move hosting to the Synology NAS (decided 2026-07-18, ~half a day, nothing started).** Copy the MedPulse pattern — the reference files are `MEDPULSE/MedPulse/docker-compose.yml`, its `Dockerfile`, and `.github/workflows/docker-build.yml`. Neon stays as the database; no data migration.
+**Move hosting to the Synology NAS — DEFERRED 2026-07-22, not cancelled** (~half a day, nothing started). Its main driver is gone; see DECISIONS.md for what would trigger revisiting. Checklist kept below so it's ready if that happens. Copy the MedPulse pattern — the reference files are `MEDPULSE/MedPulse/docker-compose.yml`, its `Dockerfile`, and `.github/workflows/docker-build.yml`. Neon stays as the database; no data migration.
 - Add `output: 'standalone'` to `next.config.ts` (also shrinks the image — `.next` is currently 266 MB).
 - Set `trustHost: true` in the NextAuth config, or remove NextAuth entirely if Cloudflare Access replaces it — without this login fails behind the tunnel (see Gotchas).
 - Dockerfile + `docker-compose.yml` (app + cloudflared + watchtower), secrets in the NAS compose only, never the repo.
 - GitHub Actions → GHCR; **the image must be built by Actions, never on the NAS (too weak) or the Mac (ARM vs the NAS's Intel)**.
 - **Scope this third Watchtower** (`--scope trip-builder` + matching label on both services) — an unscoped one kills the other two projects' auto-deploy.
 - Cloudflare Tunnel + DNS for `trip.klein-labs.com`; put Cloudflare Access in front (email code) as the login.
-- After the move: raise the generation model above claude-haiku-4-5 and the 120s budget — the Vercel timeout was the only reason for both.
 - **Cleanup (user):** remove the old Supabase env vars from Vercel project settings; delete the paused Supabase project (`flrksrouxghnninsywhx`) — nothing references it anymore.
 - Production smoke test on the current Vercel deploy (login on the live site, generate a trip) — still never done.
 - Decide fate of the 5 stubbed dead-model routes (rebuild on JSONB or delete): trip weather-refresh, apply-weather-swaps, regenerate-day, export-pdf, cron/weather-refresh.
@@ -123,7 +122,8 @@ For the full list of completed features, see `FEATURES.md`.
 - Database schema source of truth: `src/lib/db/schema.ts` (9 tables, snake_case columns). Apply changes with `npx drizzle-kit push`; seed with `node scripts/db-seed.mjs`. DB rows are snake_case; where the UI expects camelCase (sources, preferences), the API route maps at the edge — keep that boundary.
 - All DB access goes through the lazy `db` handle in `src/lib/db` (Drizzle). Don't reintroduce a client that reads env vars at module load — that's what used to break builds.
 - Itinerary generation is the **one-shot** `generateTripItinerary` in `src/lib/generation/simple-pipeline.ts` (single Claude call, 16k max tokens, JSON-repair for truncation, then a 13-check QA validation). See DECISIONS.md for why the 7-step pipeline was retired.
-- Generation must respect Vercel function limits — `generate` route has `maxDuration = 120`; keep Claude calls inside that budget (this is why the model is claude-haiku-4-5).
+- Generation must respect Vercel function limits — `generate` route has `maxDuration = 300` (Hobby ceiling); the pipeline gives Claude a 260s budget and leaves the rest for QA and DB writes. Generation uses claude-opus-4-8; the small helper routes stay on claude-haiku-4-5.
+- **Adaptive-thinking models (opus-4-8, sonnet-5) reject `temperature` with a 400** — `callClaude` sends either `temperature` or an `effort` level depending on the model. Don't pass both, and don't assume a model swap is a one-line change.
 - Design system (colors, badges, day-color palette, component look) is specified in `stitch-prompt.md` and implemented as CSS custom properties in `globals.css` — follow it for any new UI.
 
 ---
