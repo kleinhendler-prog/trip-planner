@@ -6,7 +6,7 @@
 
 import { auth } from '@/app/api/auth/config';
 import { db, destination_sources } from '@/lib/db';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 
 /**
  * PATCH /api/sources/[id]
@@ -25,25 +25,19 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     const { id } = await params;
     const body = await request.json() as any;
 
-    // Verify source exists
+    // Verify source exists and was created by this user — filtered by BOTH
+    // id and creator so a source belonging to someone else is
+    // indistinguishable from one that does not exist (both 404, never 401).
     const rows = await db
       .select({ created_by: destination_sources.created_by })
       .from(destination_sources)
-      .where(eq(destination_sources.id, id));
+      .where(and(eq(destination_sources.id, id), eq(destination_sources.created_by, session.user.id)));
     const source = rows[0];
 
     if (!source) {
       return Response.json(
         { error: 'Source not found' },
         { status: 404 }
-      );
-    }
-
-    // Only creator can update
-    if (source.created_by !== session.user.id) {
-      return Response.json(
-        { error: 'unauthorized' },
-        { status: 401 }
       );
     }
 
@@ -92,24 +86,19 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
 
     const { id } = await params;
 
-    // Verify source belongs to user
+    // Verify source belongs to user — filtered by BOTH id and creator so a
+    // source belonging to someone else is indistinguishable from one that
+    // does not exist (both 404, never 401).
     const rows = await db
       .select({ created_by: destination_sources.created_by })
       .from(destination_sources)
-      .where(eq(destination_sources.id, id));
+      .where(and(eq(destination_sources.id, id), eq(destination_sources.created_by, session.user.id)));
     const source = rows[0];
 
     if (!source) {
       return Response.json(
         { error: 'Source not found' },
         { status: 404 }
-      );
-    }
-
-    if (source.created_by !== session.user.id) {
-      return Response.json(
-        { error: 'unauthorized' },
-        { status: 401 }
       );
     }
 

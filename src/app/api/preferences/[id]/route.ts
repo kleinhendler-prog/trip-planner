@@ -5,7 +5,7 @@
 
 import { auth } from '@/app/api/auth/config';
 import { db, user_preferences } from '@/lib/db';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 
 /**
  * DELETE /api/preferences/[id]
@@ -22,24 +22,19 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
       );
     }
 
-    // Verify preference belongs to user
+    // Verify preference belongs to user — filtered by BOTH id and owner so
+    // a preference belonging to someone else is indistinguishable from one
+    // that does not exist (both 404, never 401).
     const rows = await db
       .select({ user_id: user_preferences.user_id })
       .from(user_preferences)
-      .where(eq(user_preferences.id, id));
+      .where(and(eq(user_preferences.id, id), eq(user_preferences.user_id, session.user.id)));
     const pref = rows[0];
 
     if (!pref) {
       return Response.json(
         { error: 'Preference not found' },
         { status: 404 }
-      );
-    }
-
-    if (pref.user_id !== session.user.id) {
-      return Response.json(
-        { error: 'unauthorized' },
-        { status: 401 }
       );
     }
 
