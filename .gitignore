@@ -29,3 +29,6 @@ package-lock.json
 
 # vercel
 .vercel
+
+# Subagent-driven-development scratch (ledger, briefs, review packages)
+.superpowers/
