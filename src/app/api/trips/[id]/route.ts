@@ -4,9 +4,9 @@
  * DELETE: Delete trip
  */
 
-import { auth } from '@/app/api/auth/config';
 import { db, trips } from '@/lib/db';
-import { and, eq } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
+import { requireTripAccess } from '@/lib/trip-access';
 
 /**
  * GET /api/trips/[id]
@@ -14,28 +14,12 @@ import { and, eq } from 'drizzle-orm';
  */
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
-      return Response.json(
-        { error: 'unauthorized' },
-        { status: 401 }
-      );
-    }
-
     const { id } = await params;
 
-    const rows = await db
-      .select()
-      .from(trips)
-      .where(and(eq(trips.id, id), eq(trips.user_id, session.user.id)));
-    const trip: any = rows[0];
+    const access = await requireTripAccess(id);
+    if (!access.ok) return access.response;
 
-    if (!trip) {
-      return Response.json(
-        { error: 'Trip not found' },
-        { status: 404 }
-      );
-    }
+    const trip: any = access.trip;
 
     // Detect stale/orphaned generations: if generating for >2.5 minutes, auto-fail
     if (trip.status === 'generating' && trip.generation_started_at) {
@@ -66,36 +50,10 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
  */
 export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
-      return Response.json(
-        { error: 'unauthorized' },
-        { status: 401 }
-      );
-    }
-
     const { id } = await params;
 
-    // Verify trip belongs to user
-    const rows = await db
-      .select({ user_id: trips.user_id })
-      .from(trips)
-      .where(eq(trips.id, id));
-    const trip = rows[0];
-
-    if (!trip) {
-      return Response.json(
-        { error: 'Trip not found' },
-        { status: 404 }
-      );
-    }
-
-    if (trip.user_id !== session.user.id) {
-      return Response.json(
-        { error: 'unauthorized' },
-        { status: 401 }
-      );
-    }
+    const access = await requireTripAccess(id);
+    if (!access.ok) return access.response;
 
     // Delete trip; related rows cascade
     await db.delete(trips).where(eq(trips.id, id));

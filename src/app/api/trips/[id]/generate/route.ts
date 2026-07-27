@@ -1,31 +1,18 @@
-import { auth } from '@/app/api/auth/config';
 import { db, trips } from '@/lib/db';
 import { eq } from 'drizzle-orm';
 import { generateTripItinerary } from '@/lib/generation/simple-pipeline';
+import { requireTripAccess } from '@/lib/trip-access';
 
 export const maxDuration = 300; // Vercel's Hobby ceiling; the old 120 was a 60s-era holdover
 
 export async function POST(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
-      return Response.json({ error: 'unauthorized' }, { status: 401 });
-    }
-
     const { id } = await params;
 
-    // Verify ownership
-    const rows = await db
-      .select({ user_id: trips.user_id, status: trips.status })
-      .from(trips)
-      .where(eq(trips.id, id));
-    const trip = rows[0];
+    const access = await requireTripAccess(id);
+    if (!access.ok) return access.response;
 
-    if (!trip) return Response.json({ error: 'not found' }, { status: 404 });
-    if (trip.user_id !== session.user.id) {
-      return Response.json({ error: 'unauthorized' }, { status: 401 });
-    }
-    if (trip.status === 'ready') {
+    if (access.trip.status === 'ready') {
       return Response.json({ ok: true, alreadyReady: true });
     }
 

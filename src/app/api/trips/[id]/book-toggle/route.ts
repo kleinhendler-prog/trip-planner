@@ -3,9 +3,9 @@
  * POST: Toggle booking status for an item
  */
 
-import { auth } from '@/app/api/auth/config';
 import { db, trips } from '@/lib/db';
-import { and, eq } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
+import { requireTripAccess } from '@/lib/trip-access';
 
 
 interface BookToggleRequest {
@@ -19,15 +19,11 @@ interface BookToggleRequest {
  */
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
-      return Response.json(
-        { error: 'unauthorized' },
-        { status: 401 }
-      );
-    }
-
     const { id } = await params;
+
+    const access = await requireTripAccess(id);
+    if (!access.ok) return access.response;
+
     const { item_id, booked } = await request.json() as BookToggleRequest;
 
     if (!item_id || typeof booked !== 'boolean') {
@@ -37,22 +33,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       );
     }
 
-    // Verify trip belongs to user
-    const rows = await db
-      .select({ booked_items: trips.booked_items })
-      .from(trips)
-      .where(and(eq(trips.id, id), eq(trips.user_id, session.user.id)));
-    const trip = rows[0];
-
-    if (!trip) {
-      return Response.json(
-        { error: 'Trip not found' },
-        { status: 404 }
-      );
-    }
-
     // Get current booked items (default to empty array)
-    const currentBookedItems = (trip.booked_items as string[]) || [];
+    const currentBookedItems = (access.trip.booked_items as string[]) || [];
 
     // Toggle item
     let updatedBookedItems: string[];

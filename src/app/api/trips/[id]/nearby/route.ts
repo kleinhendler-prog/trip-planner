@@ -3,11 +3,11 @@
  * POST: Get 2-3 nearby suggestions for a specific activity
  */
 
-import { auth } from '@/app/api/auth/config';
-import { db, trips, user_profiles } from '@/lib/db';
-import { and, eq } from 'drizzle-orm';
+import { db, user_profiles } from '@/lib/db';
+import { eq } from 'drizzle-orm';
 import { callClaudeJSON } from '@/lib/claude';
 import type { SimpleItinerary } from '@/lib/generation/simple-pipeline';
+import { requireTripAccess } from '@/lib/trip-access';
 
 interface NearbyRequest {
   day_index: number;
@@ -26,24 +26,13 @@ interface NearbySuggestion {
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
-      return Response.json({ error: 'unauthorized' }, { status: 401 });
-    }
-
     const { id } = await params;
+
+    const access = await requireTripAccess(id);
+    if (!access.ok) return access.response;
+
+    const trip: any = access.trip;
     const { day_index, activity_index } = (await request.json()) as NearbyRequest;
-
-    // Fetch trip
-    const tripRows = await db
-      .select()
-      .from(trips)
-      .where(and(eq(trips.id, id), eq(trips.user_id, session.user.id)));
-    const trip: any = tripRows[0];
-
-    if (!trip) {
-      return Response.json({ error: 'Trip not found' }, { status: 404 });
-    }
 
     const itinerary = trip.itinerary as SimpleItinerary;
     const activity = itinerary?.days?.[day_index]?.activities?.[activity_index];

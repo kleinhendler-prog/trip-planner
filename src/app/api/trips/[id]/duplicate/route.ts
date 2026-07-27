@@ -6,10 +6,9 @@
  * copied rows from days/activities/meals tables that no longer exist.
  */
 
-import { auth } from '@/app/api/auth/config';
 import { db, trips } from '@/lib/db';
-import { and, eq } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
+import { requireTripAccess } from '@/lib/trip-access';
 
 /**
  * POST /api/trips/[id]/duplicate
@@ -17,36 +16,18 @@ import { v4 as uuidv4 } from 'uuid';
  */
 export async function POST(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
-      return Response.json(
-        { error: 'unauthorized' },
-        { status: 401 }
-      );
-    }
-
     const { id } = await params;
 
-    // Verify trip belongs to user and get full row
-    const rows = await db
-      .select()
-      .from(trips)
-      .where(and(eq(trips.id, id), eq(trips.user_id, session.user.id)));
-    const trip: any = rows[0];
+    const access = await requireTripAccess(id);
+    if (!access.ok) return access.response;
 
-    if (!trip) {
-      return Response.json(
-        { error: 'Trip not found' },
-        { status: 404 }
-      );
-    }
-
+    const trip: any = access.trip;
     const newTripId = uuidv4();
     const profile = (trip.profile as any) || {};
 
     await db.insert(trips).values({
       id: newTripId,
-      user_id: session.user.id,
+      user_id: access.userId,
       destination: trip.destination,
       start_date: trip.start_date,
       end_date: trip.end_date,

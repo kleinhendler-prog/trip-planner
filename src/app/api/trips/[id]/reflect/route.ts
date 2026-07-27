@@ -3,11 +3,11 @@
  * POST: Create/update trip reflection and extract preferences
  */
 
-import { auth } from '@/app/api/auth/config';
-import { db, trips, trip_reflections, user_preferences } from '@/lib/db';
-import { and, eq } from 'drizzle-orm';
+import { db, trip_reflections, user_preferences } from '@/lib/db';
+import { eq } from 'drizzle-orm';
 import { callClaudeJSON } from '@/lib/claude';
 import { v4 as uuidv4 } from 'uuid';
+import { requireTripAccess } from '@/lib/trip-access';
 
 
 interface ReflectionRequest {
@@ -22,34 +22,17 @@ interface ReflectionRequest {
  */
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
-      return Response.json(
-        { error: 'unauthorized' },
-        { status: 401 }
-      );
-    }
-
     const { id } = await params;
+
+    const access = await requireTripAccess(id);
+    if (!access.ok) return access.response;
+
     const { loved, disappointed, notes } = await request.json() as ReflectionRequest;
 
     if (!Array.isArray(loved) || !Array.isArray(disappointed)) {
       return Response.json(
         { error: 'Invalid parameters' },
         { status: 400 }
-      );
-    }
-
-    // Verify trip belongs to user
-    const tripRows = await db
-      .select({ id: trips.id })
-      .from(trips)
-      .where(and(eq(trips.id, id), eq(trips.user_id, session.user.id)));
-
-    if (!tripRows[0]) {
-      return Response.json(
-        { error: 'Trip not found' },
-        { status: 404 }
       );
     }
 
@@ -70,7 +53,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     let reflectionId = uuidv4();
     const reflectionData = {
       trip_id: id,
-      user_id: session.user.id,
+      user_id: access.userId,
       loved,
       disappointed,
       notes: notes || null,
@@ -96,7 +79,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     // Update user preferences if extracted
     if (extractedPreferences && Object.keys(extractedPreferences).length > 0) {
       await updateUserPreferences(
-        session.user.id,
+        access.userId,
         extractedPreferences
       );
     }

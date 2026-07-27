@@ -3,10 +3,10 @@
  * PUT: Swap two days in the itinerary and update dates/day numbers
  */
 
-import { auth } from '@/app/api/auth/config';
 import { db, trips } from '@/lib/db';
-import { and, eq } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import type { SimpleItinerary } from '@/lib/generation/simple-pipeline';
+import { requireTripAccess } from '@/lib/trip-access';
 
 interface ReorderRequest {
   from_index: number;  // 0-based day index
@@ -15,27 +15,16 @@ interface ReorderRequest {
 
 export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
-      return Response.json({ error: 'unauthorized' }, { status: 401 });
-    }
-
     const { id } = await params;
+
+    const access = await requireTripAccess(id);
+    if (!access.ok) return access.response;
+
+    const trip: any = access.trip;
     const { from_index, to_index } = (await request.json()) as ReorderRequest;
 
     if (typeof from_index !== 'number' || typeof to_index !== 'number') {
       return Response.json({ error: 'Invalid parameters' }, { status: 400 });
-    }
-
-    // Fetch trip
-    const tripRows = await db
-      .select()
-      .from(trips)
-      .where(and(eq(trips.id, id), eq(trips.user_id, session.user.id)));
-    const trip: any = tripRows[0];
-
-    if (!trip) {
-      return Response.json({ error: 'Trip not found' }, { status: 404 });
     }
 
     const itinerary = trip.itinerary as SimpleItinerary;

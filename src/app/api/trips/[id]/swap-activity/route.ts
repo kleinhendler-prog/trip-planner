@@ -4,11 +4,11 @@
  * PUT:  Apply (approve) a suggested alternative into the itinerary
  */
 
-import { auth } from '@/app/api/auth/config';
 import { db, trips, user_profiles } from '@/lib/db';
-import { and, eq } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { callClaudeJSON } from '@/lib/claude';
 import type { SimpleItinerary, ItineraryActivity } from '@/lib/generation/simple-pipeline';
+import { requireTripAccess } from '@/lib/trip-access';
 
 interface SuggestRequest {
   day_index: number;
@@ -28,12 +28,12 @@ interface ApproveRequest {
  */
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
-      return Response.json({ error: 'unauthorized' }, { status: 401 });
-    }
-
     const { id } = await params;
+
+    const access = await requireTripAccess(id);
+    if (!access.ok) return access.response;
+
+    const trip: any = access.trip;
     const { day_index, activity_index, attempt = 1 } = (await request.json()) as SuggestRequest;
 
     if (typeof day_index !== 'number' || typeof activity_index !== 'number') {
@@ -42,17 +42,6 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
     if (attempt > 3) {
       return Response.json({ error: 'Maximum 3 re-suggestions allowed' }, { status: 400 });
-    }
-
-    // Fetch trip
-    const tripRows = await db
-      .select()
-      .from(trips)
-      .where(and(eq(trips.id, id), eq(trips.user_id, session.user.id)));
-    const trip: any = tripRows[0];
-
-    if (!trip) {
-      return Response.json({ error: 'Trip not found' }, { status: 404 });
     }
 
     const itinerary = trip.itinerary as SimpleItinerary;
@@ -153,27 +142,16 @@ Return ONLY valid JSON (no markdown):
  */
 export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
-      return Response.json({ error: 'unauthorized' }, { status: 401 });
-    }
-
     const { id } = await params;
+
+    const access = await requireTripAccess(id);
+    if (!access.ok) return access.response;
+
+    const trip: any = access.trip;
     const { day_index, activity_index, replacement } = (await request.json()) as ApproveRequest;
 
     if (typeof day_index !== 'number' || typeof activity_index !== 'number' || !replacement) {
       return Response.json({ error: 'Invalid parameters' }, { status: 400 });
-    }
-
-    // Fetch trip
-    const tripRows = await db
-      .select()
-      .from(trips)
-      .where(and(eq(trips.id, id), eq(trips.user_id, session.user.id)));
-    const trip: any = tripRows[0];
-
-    if (!trip) {
-      return Response.json({ error: 'Trip not found' }, { status: 404 });
     }
 
     const itinerary = trip.itinerary as SimpleItinerary;
