@@ -1,6 +1,6 @@
 'use client';
 
-import React, { Suspense } from 'react';
+import React, { Suspense, useState } from 'react';
 import { signIn } from 'next-auth/react';
 import { useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,6 +10,14 @@ function LoginContent() {
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get('callbackUrl') || '/';
   const hasError = searchParams.get('error');
+  const [isLoading, setIsLoading] = useState(false);
+
+  // signIn navigates away, so this is never reset — that is the point: the
+  // button stays disabled instead of firing a second sign-in on a double click.
+  const handleSignIn = () => {
+    setIsLoading(true);
+    signIn('google', { callbackUrl });
+  };
 
   return (
     <div
@@ -31,9 +39,11 @@ function LoginContent() {
           )}
           <Button
             className="w-full"
-            onClick={() => signIn('google', { callbackUrl })}
+            onClick={handleSignIn}
+            isLoading={isLoading}
+            disabled={isLoading}
           >
-            Continue with Google
+            {isLoading ? 'Signing in...' : 'Continue with Google'}
           </Button>
         </CardContent>
       </Card>

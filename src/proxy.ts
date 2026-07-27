@@ -34,8 +34,11 @@ export async function proxy(request: NextRequest) {
   // Check for session
   const session = await auth();
 
-  // Redirect to login if no session
-  if (!session) {
+  // Redirect to login unless the session carries a usable user id. @auth/core
+  // returns a session object for any token that decodes, so checking the
+  // session alone would let a token whose member was removed from the
+  // allow-list through to a broken, half-rendered page.
+  if (!session?.user?.id) {
     const loginUrl = new URL('/login', request.url);
     loginUrl.searchParams.set('callbackUrl', pathname);
     return NextResponse.redirect(loginUrl);
