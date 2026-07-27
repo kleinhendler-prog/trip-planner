@@ -57,6 +57,22 @@ export const user_profiles = pgTable('user_profiles', {
   updated_at: timestamp('updated_at', { withTimezone: true }).defaultNow(),
 });
 
+/**
+ * The family allow-list. A Google account can only sign in if its email
+ * already has a row here — signing in never creates one.
+ */
+export const users = pgTable('users', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  email: text('email').notNull().unique(),
+  name: text('name'),
+  image: text('image'),
+  google_sub: text('google_sub').unique(),
+  role: text('role').notNull().default('member'),
+  status: text('status').notNull().default('invited'),
+  created_at: timestamp('created_at', { withTimezone: true }).defaultNow(),
+  last_login_at: timestamp('last_login_at', { withTimezone: true }),
+});
+
 export const user_preferences = pgTable(
   'user_preferences',
   {
