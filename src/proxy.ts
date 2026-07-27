@@ -27,7 +27,7 @@ export async function proxy(request: NextRequest) {
   }
 
   // Allow login page
-  if (pathname === '/login' || pathname === '/') {
+  if (pathname === '/login' || pathname === '/' || pathname === '/invite-only') {
     return NextResponse.next();
   }
 
