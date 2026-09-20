@@ -2,10 +2,17 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { signOut } from 'next-auth/react';
+import { signOut, useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 
 const Header = () => {
+  // Header is a client component (it calls signOut on click), so the admin
+  // check reads the session client-side via useSession — the pattern already
+  // established by page.tsx, profile/page.tsx, and profile-setup/page.tsx —
+  // rather than calling the server-only auth() here.
+  const { data: session } = useSession();
+  const isAdmin = session?.user?.role === 'admin';
+
   return (
     <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-[var(--color-surface-dim)] shadow-level-1">
       <nav className="mx-auto max-w-[1200px] px-6 h-16 flex items-center justify-between">
@@ -29,6 +36,14 @@ const Header = () => {
             >
               Profile
             </Link>
+            {isAdmin && (
+              <Link
+                href="/family"
+                className="text-sm font-medium text-[var(--color-on-surface-variant)] hover:text-[var(--color-primary)] hover:bg-[var(--color-surface-container-low)] rounded-full px-3 py-1.5 transition-all duration-200"
+              >
+                Family
+              </Link>
+            )}
           </div>
         </div>
 
