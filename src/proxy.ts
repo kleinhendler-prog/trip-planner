@@ -27,7 +27,9 @@ export async function proxy(request: NextRequest) {
   }
 
   // Allow login page
-  if (pathname === '/login' || pathname === '/' || pathname === '/invite-only') {
+  // Note: '/' is the authenticated trips home page (src/app/page.tsx), not a
+  // public landing page — it must stay protected like everything else.
+  if (pathname === '/login' || pathname === '/invite-only') {
     return NextResponse.next();
   }
 

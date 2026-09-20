@@ -8,6 +8,7 @@ import Credentials from 'next-auth/providers/credentials';
 import Google from 'next-auth/providers/google';
 import { compare } from 'bcryptjs';
 import { decideAccess, normaliseEmail } from '@/lib/access-decision';
+import { shouldRecheckSession, decideRecheckOutcome } from '@/lib/session-recheck';
 import { findMemberByEmail, recordSuccessfulLogin } from '@/lib/family';
 
 /**
@@ -163,25 +164,33 @@ export const authConfig: NextAuthConfig = {
         return token;
       }
 
-      // An existing session. Only Google sessions are governed by the
-      // allow-list; a credentials session is governed by the env password and
-      // has no users row to re-check, so re-checking one would sign it out.
-      if (token.provider !== 'google') {
-        return token;
-      }
+      // An existing session. Whether it is due for another allow-list check
+      // is a pure decision — see session-recheck.ts — that only Google
+      // sessions can even be subject to: a credentials session is governed
+      // by the env password and has no users row to re-check, so
+      // re-checking one would sign it out.
+      const tokenProvider = typeof token.provider === 'string' ? token.provider : undefined;
+      const tokenCheckedAt = typeof token.checkedAt === 'number' ? token.checkedAt : undefined;
 
-      const checkedAt = typeof token.checkedAt === 'number' ? token.checkedAt : 0;
-      if (Date.now() - checkedAt < ALLOW_LIST_RECHECK_MS) {
+      if (
+        !shouldRecheckSession({
+          provider: tokenProvider,
+          checkedAt: tokenCheckedAt,
+          now: Date.now(),
+          intervalMs: ALLOW_LIST_RECHECK_MS,
+        })
+      ) {
         return token;
       }
 
       try {
         const member = await findMemberByEmail(token.email ?? '');
+        const outcome = decideRecheckOutcome(member, Date.now());
 
-        if (member) {
-          token.id = member.id;
-          token.role = member.role;
-          token.checkedAt = Date.now();
+        if (outcome.kind === 'refresh') {
+          token.id = outcome.id;
+          token.role = outcome.role;
+          token.checkedAt = outcome.checkedAt;
         } else {
           // Removed from the allow-list. Dropping these claims is what ends
           // the session; the timestamp is deliberately left stale so a
