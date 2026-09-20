@@ -7,6 +7,30 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import type { FamilyMemberDetail } from '@/lib/family';
 
+const SESSION_EXPIRED_MESSAGE = 'Your session expired — sign in again.';
+
+/**
+ * Parses a fetch response as JSON, but only if it actually looks like one.
+ *
+ * If the session expires while this page is open, the proxy (src/proxy.ts)
+ * intercepts the request and redirects it to /login — fetch follows that
+ * redirect automatically, so `res.ok` ends up true even though the request
+ * never reached the API route at all, and the body is the login page's HTML,
+ * not JSON. Treating that as success would either silently do nothing (add)
+ * or tell the admin something was removed when it wasn't (remove). Checking
+ * `res.redirected` and the content-type before parsing — and never letting
+ * `res.json()` throw uncaught — turns that into a plain, visible error.
+ */
+async function parseJsonResponse(res: Response): Promise<{ ok: true; data: any } | { ok: false }> {
+  if (res.redirected) return { ok: false };
+  if (!res.headers.get('content-type')?.includes('application/json')) return { ok: false };
+  try {
+    return { ok: true, data: await res.json() };
+  } catch {
+    return { ok: false };
+  }
+}
+
 export function FamilyManager({
   initialMembers,
   currentUserId,
@@ -31,7 +55,12 @@ export function FamilyManager({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),
       });
-      const data = await res.json();
+      const parsed = await parseJsonResponse(res);
+      if (!parsed.ok) {
+        setError(SESSION_EXPIRED_MESSAGE);
+        return;
+      }
+      const { data } = parsed;
       if (!res.ok) {
         setError(data.error || 'Could not add that address');
         return;
@@ -51,9 +80,13 @@ export function FamilyManager({
     setRemovingId(id);
     try {
       const res = await fetch(`/api/family/${id}`, { method: 'DELETE' });
+      const parsed = await parseJsonResponse(res);
+      if (!parsed.ok) {
+        setError(SESSION_EXPIRED_MESSAGE);
+        return;
+      }
       if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        setError(data.error || 'Could not remove that person');
+        setError(parsed.data.error || 'Could not remove that person');
         return;
       }
       setMembers((prev) => prev.filter((m) => m.id !== id));

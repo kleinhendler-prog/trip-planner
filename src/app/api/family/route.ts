@@ -51,7 +51,17 @@ export async function POST(request: Request) {
     if (!admin.ok) return admin.response;
 
     const body = await request.json().catch(() => ({}));
-    const email = normaliseEmail(body?.email);
+    const rawEmail = body?.email;
+
+    // normaliseEmail calls .trim() unconditionally, which throws on anything
+    // that isn't a string (a number, array, or object in the body) — check
+    // the type first so a malformed request gets a 400, not a 500. 254 is
+    // the maximum email length allowed by RFC 5321.
+    if (typeof rawEmail !== 'string' || rawEmail.length === 0 || rawEmail.length > 254) {
+      return Response.json({ error: 'A valid email address is required' }, { status: 400 });
+    }
+
+    const email = normaliseEmail(rawEmail);
 
     if (!email || !email.includes('@')) {
       return Response.json({ error: 'A valid email address is required' }, { status: 400 });
