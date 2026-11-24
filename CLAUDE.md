@@ -71,6 +71,7 @@ All four targets below are in the **project root**. Never edit the global `~/.cl
 
 - **Last worked on:** (2026-07-22) Re-examined the NAS decision and found its main justification didn't hold: the 120s generate-route cap was self-imposed, not Vercel's limit. Raised it to 300s and moved generation to claude-opus-4-8 (commit 7104d9c) — which also required removing `temperature` (rejected by adaptive-thinking models), lifting a hidden 90s client-side timeout, switching to streaming, and making retries budget-aware. Verified against the live API, not just typecheck.
 - **Next up:** Generate a real trip in the app and judge whether itinerary quality actually improved — that's the point of the change and only Eyal can call it. User cleanup still open: remove the 6 old Supabase env vars from Vercel and delete the old Supabase project.
+- **Moved out of OneDrive (2026-11-25):** the project now lives in `~/ClaudeCode/trip-planner` on the Mac mini. The OneDrive folder, renamed "TRIP BUILDER (old copy - backup only)", is a backup only: never work in it.
 - **Open question:** Make the public GitHub repo private (more relevant once self-hosted)? Rebuild any of the 5 stubbed features (weather refresh, regenerate day, export-pdf route, cron) on the JSONB model, or drop them?
 
 ---
@@ -130,9 +131,9 @@ For the full list of completed features, see `FEATURES.md`.
 
 ## Gotchas
 
-- The project lives in a OneDrive-synced folder; file timestamps/sync can be quirky. The git repo (since 2026-07-03) is the reliable history — trust `git log` over file dates.
+- Until 2026-11-25 the project lived in a OneDrive-synced folder, so file timestamps there are unreliable. The git repo (since 2026-07-03) is the reliable history — trust `git log` over file dates.
 - **The local folder was 3 weeks staler than GitHub** (Cowork pushed through Apr 22 but the folder held an Apr ~13–17 snapshot). Resolved 2026-07-03 by checking out remote `main`; the stale state lives on branch `local-cowork-snapshot`. Lesson: check the remote before trusting local files.
-- **OneDrive resurrects deleted files.** Files that git removes from the working tree (branch checkout, git rm) can silently reappear after a sync — deploy.sh and CLAUDE.md.old both came back from the dead on 2026-07-04 and nearly got committed. After any big git operation in this folder, check `git status` for zombie files.
+- **History: OneDrive resurrected deleted files** (deploy.sh and CLAUDE.md.old came back on 2026-07-04 and nearly got committed). Gone since the move out of OneDrive.
 - `trip-planner/` is a stale duplicate of the root project. Greps/ESLint scan it too and double-count; scope searches to `src/`.
 - ESLint has ~427 pre-existing errors (mostly `no-explicit-any`); a red `npm run lint` does not mean your change broke something — lint only the files you touched.
 - `local-cowork-snapshot` branch also preserves Cowork leftovers removed from `main`'s tree (deploy.sh force-push script, old 7-step-era docs).
